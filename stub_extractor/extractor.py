@@ -242,7 +242,7 @@ def _get_annotation_subscript(
         return None
     slice_: ast.AST
     if isinstance(subscript.slice, ast.Index):  # Python 3.8
-        slice_ = subscript.slice.value
+        slice_ = subscript.slice.value  # type: ignore
     else:  # Python 3.9+
         slice_ = subscript.slice
     if isinstance(slice_, ast.Constant):
