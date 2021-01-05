@@ -240,20 +240,26 @@ def _get_annotation_subscript(
     if not isinstance(subscript.value, ast.Name):
         _warn_unsupported_ast(subscript, subscript.value, context)
         return None
-    if not isinstance(subscript.slice, ast.Index):
-        _warn_unsupported_ast(subscript, subscript.slice, context)
-        return None
-    if isinstance(subscript.slice.value, ast.Tuple):
-        subs = [_get_annotation(el, context) for el in subscript.slice.value.elts]
-        if any(s is None for s in subs):
-            return None
-        sub = ", ".join(cast(List[str], subs))
-    else:
-        sub2 = _get_annotation(subscript.slice.value, context)
+    slice_: ast.AST
+    if isinstance(subscript.slice, ast.Index):  # Python 3.8
+        slice_ = subscript.slice.value
+    else:  # Python 3.9+
+        slice_ = subscript.slice
+    if isinstance(slice_, ast.Constant):
+        sub2 = _get_annotation(slice_, context)
         if sub2 is None:
             return None
         sub = sub2
-    return f"{subscript.value.id}[{sub}]"
+        return f"{subscript.value.id}[{sub}]"
+    elif isinstance(slice_, ast.Tuple):
+        subs = [_get_annotation(el, context) for el in slice_.elts]
+        if any(s is None for s in subs):
+            return None
+        sub = ", ".join(cast(List[str], subs))
+        return f"{subscript.value.id}[{sub}]"
+    else:
+        _warn_unsupported_ast(subscript, slice_, context)
+        return None
 
 
 def _warn_unsupported_ast(
