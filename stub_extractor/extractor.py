@@ -24,15 +24,16 @@ class ExtractContext:
         self.finish_line()
 
 
-def extract(source: SupportsRead[str], target: SupportsWrite[str]) -> None:
+def extract(
+    source: SupportsRead[str], target: SupportsWrite[str], filename: str = "<unknown>"
+) -> None:
     context = ExtractContext(target)
-    tree = ast.parse(source.read(), type_comments=True)
+    tree = ast.parse(source.read(), filename=filename, type_comments=True)
     _extract_module(tree, context)
 
 
 def _extract_module(module: ast.Module, context: ExtractContext) -> None:
     for child in module.body:
-        pass
         if isinstance(child, ast.Expr):
             _extract_naked_expr(child, context)
         elif isinstance(child, ast.Import):

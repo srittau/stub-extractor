@@ -11,9 +11,16 @@ Don't expect that it does anything useful at this point.
 
 ## Usage
 
-`stub_extractor` will extract a type stub from stdin and print it
-to stdout:
+There are two basic ways to run `stub_extractor`:
 
-```
-cat example.py | python3 stub_extractor
-```
+1. If no files are specified, `stub_extractor` will extract a type stub
+   from stdin and print it to stdout:
+
+   ```
+   cat example.py | python3 stub_extractor
+   ```
+
+2. Otherwise, `stub_extractor` writes a stub file for each Python file
+   given on the command line. The file will have the same name, but the
+   `*.py` suffix will be replaced with `*.pyi`. If the target file already
+   exists, `stub_extractor` will not overwrite it.
