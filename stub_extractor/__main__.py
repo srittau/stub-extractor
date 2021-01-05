@@ -43,9 +43,9 @@ def _extract_file(args: Args, filename: str) -> None:
                     try:
                         extract(source, target, filename)
                     except SyntaxError as exc:
-                        print(f"WARNING: invalid Python file '{filename}': {exc}")
+                        print(f"WARNING:{filename}:invalid Python file : {exc}")
             except FileExistsError:
-                print(f"WARNING: file '{target_name}' already exists")
+                print(f"WARNING:{target_name}:file already exists")
     except OSError as exc:
         print(f"WARNING: {exc}")
 
