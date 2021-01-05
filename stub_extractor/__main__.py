@@ -2,7 +2,7 @@
 
 import sys
 
-from .args import parse_args
+from .args import Args, parse_args
 from .extractor import extract
 
 
@@ -15,15 +15,16 @@ def main() -> None:
         extract(sys.stdin, sys.stderr)
     else:
         for filename in args.files:
-            _extract_file(filename)
+            _extract_file(args, filename)
 
 
-def _extract_file(filename: str) -> None:
+def _extract_file(args: Args, filename: str) -> None:
     target_name = filename + "i" if filename.endswith(".py") else filename + ".pyi"
     try:
         with open(filename) as source:
             try:
-                with open(target_name, "x") as target:
+                mode = "w" if args.overwrite else "x"
+                with open(target_name, mode) as target:
                     try:
                         extract(source, target, filename)
                     except SyntaxError as exc:
