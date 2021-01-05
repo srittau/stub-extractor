@@ -51,6 +51,21 @@ def test_return_annotations(_run_extract: Callable[[str], str]) -> None:
     assert _run_extract("def foo() -> str:\n  pass") == "def foo() -> str: ..."
 
 
+def test_annotation_constants(_run_extract: Callable[[str], str]) -> None:
+    assert _run_extract("def foo() -> None: pass") == "def foo() -> None: ..."
+
+
+def test_annotation_subscripts(_run_extract: Callable[[str], str]) -> None:
+    assert (
+        _run_extract("def foo() -> Optional[None]: pass")
+        == "def foo() -> Optional[None]: ..."
+    )
+    assert (
+        _run_extract("def foo() -> Tuple[None, str]: pass")
+        == "def foo() -> Tuple[None, str]: ..."
+    )
+
+
 def test_class_statement(_run_extract: Callable[[str], str]) -> None:
     assert _run_extract("class Foo: ...") == "class Foo: ..."
 

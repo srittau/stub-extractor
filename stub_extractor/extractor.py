@@ -3,7 +3,7 @@ from __future__ import annotations
 import ast
 import sys
 import types
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, List, Optional, cast
 
 if TYPE_CHECKING:
     from _typeshed import SupportsRead, SupportsWrite
@@ -213,14 +213,47 @@ def _get_annotation(
 ) -> Optional[str]:
     if annotation is None:
         return None
+    if isinstance(annotation, ast.Constant):
+        if annotation.value is None:
+            return "None"
+        else:
+            context.warn(
+                annotation,
+                f"unsupported constant {annotation.value} for annotations",
+            )
+            return None
     if isinstance(annotation, ast.Name):
         return annotation.id
+    elif isinstance(annotation, ast.Subscript):
+        return _get_annotation_subscript(annotation, context)
     else:
         context.warn(
             annotation,
             f"unsupported ast type '{type(annotation).__name__}' for annotations",
         )
         return None
+
+
+def _get_annotation_subscript(
+    subscript: ast.Subscript, context: ExtractContext
+) -> Optional[str]:
+    if not isinstance(subscript.value, ast.Name):
+        _warn_unsupported_ast(subscript, subscript.value, context)
+        return None
+    if not isinstance(subscript.slice, ast.Index):
+        _warn_unsupported_ast(subscript, subscript.slice, context)
+        return None
+    if isinstance(subscript.slice.value, ast.Tuple):
+        subs = [_get_annotation(el, context) for el in subscript.slice.value.elts]
+        if any(s is None for s in subs):
+            return None
+        sub = ", ".join(cast(List[str], subs))
+    else:
+        sub2 = _get_annotation(subscript.slice.value, context)
+        if sub2 is None:
+            return None
+        sub = sub2
+    return f"{subscript.value.id}[{sub}]"
 
 
 def _warn_unsupported_ast(
