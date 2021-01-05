@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import ast
 import sys
+import types
 from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
@@ -12,13 +13,29 @@ class ExtractContext:
     def __init__(self, target: SupportsWrite[str], filename: str) -> None:
         self._target = target
         self.filename = filename
+        self._indentation = 0
+        self._new_line = True
+
+    def indent(self) -> _IndentationContext:
+        self.finish_line()
+        self._indentation += 1
+        return _IndentationContext(self)
+
+    def unindent(self) -> None:
+        self.finish_line()
+        assert self._indentation > 0
+        self._indentation -= 1
 
     def write(self, s: str) -> None:
+        if self._new_line:
+            self._target.write("    " * self._indentation)
+            self._new_line = False
         self._target.write(s)
 
     def finish_line(self, s: str = "") -> None:
-        self._target.write(s)
-        self._target.write("\n")
+        self.write(s)
+        self.write("\n")
+        self._new_line = True
 
     def write_line(self, s: str) -> None:
         self.write(s)
@@ -26,6 +43,22 @@ class ExtractContext:
 
     def warn(self, msg: str) -> None:
         print(f"WARNING:{self.filename}:{msg}", file=sys.stderr)
+
+
+class _IndentationContext:
+    def __init__(self, context: ExtractContext) -> None:
+        self._context = context
+
+    def __enter__(self) -> None:
+        pass
+
+    def __exit__(
+        self,
+        exc_type: Optional[BaseException],
+        exc_value: Optional[BaseException],
+        tb: types.TracebackType,
+    ) -> None:
+        self._context.unindent()
 
 
 def extract(
@@ -44,6 +77,8 @@ def _extract_module(module: ast.Module, context: ExtractContext) -> None:
             _extract_import(child, context)
         elif isinstance(child, ast.FunctionDef):
             _extract_function(child, context)
+        elif isinstance(child, ast.ClassDef):
+            _extract_class(child, context)
         else:
             _warn_unsupported_ast(module, child, context)
 
@@ -115,6 +150,47 @@ def _extract_argument(arg: ast.arg, context: ExtractContext) -> None:
         context.write(annotation)
     if arg.type_comment:
         context.warn(f"{arg.lineno}:argument type comments are currently unsupported")
+
+
+def _extract_class(klass: ast.ClassDef, context: ExtractContext) -> None:
+    if klass.decorator_list:
+        context.warn(f"{klass.lineno}:class decorators are currently unsupported")
+    context.write("class ")
+    context.write(klass.name)
+    if klass.bases:
+        context.warn(f"{klass.lineno}:base classes are currently unsupported")
+    if klass.keywords:
+        context.warn(f"{klass.lineno}:class keywords are currently unsupported")
+    context.write(":")
+    if _is_class_body_empty(klass):
+        context.finish_line(" ...")
+    else:
+        with context.indent():
+            _extract_class_body(klass, context)
+
+
+def _is_class_body_empty(klass: ast.ClassDef) -> bool:
+    return all(_is_pass_or_ellipsis(s) for s in klass.body)
+
+
+def _extract_class_body(klass: ast.ClassDef, context: ExtractContext) -> None:
+    for stmt in klass.body:
+        if _is_pass_or_ellipsis(stmt):
+            pass
+        elif isinstance(stmt, ast.FunctionDef):
+            _extract_function(stmt, context)
+        else:
+            context.warn(
+                f"{stmt.lineno}:unsupported ast type '{type(stmt).__name__}' in class body"
+            )
+
+
+def _is_pass_or_ellipsis(stmt: ast.stmt) -> bool:
+    return (
+        isinstance(stmt, ast.Pass)
+        or isinstance(stmt, ast.Expr)
+        and isinstance(stmt.value, ast.Constant)
+    )
 
 
 def _get_annotation(

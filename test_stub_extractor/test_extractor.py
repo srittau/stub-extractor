@@ -12,7 +12,7 @@ def _run_extract(capsys: Any) -> Callable[[str], str]:
         target = StringIO()
         extract(StringIO(source), target)
         assert capsys.readouterr().err == ""
-        return target.getvalue()
+        return target.getvalue().strip()
 
     return f
 
@@ -31,21 +31,48 @@ def test_ignore_docstrings(_run_extract: Callable[[str], str]) -> None:
 
 
 def test_imports(_run_extract: Callable[[str], str]) -> None:
-    assert _run_extract("""import os""") == "import os\n"
-    assert _run_extract("""import os, sys""") == "import os, sys\n"
-    assert _run_extract("""import os as so""") == "import os as so\n"
-    assert _run_extract("""import sys.path""") == "import sys.path\n"
+    assert _run_extract("""import os""") == "import os"
+    assert _run_extract("""import os, sys""") == "import os, sys"
+    assert _run_extract("""import os as so""") == "import os as so"
+    assert _run_extract("""import sys.path""") == "import sys.path"
 
 
 def test_unannotated_functions(_run_extract: Callable[[str], str]) -> None:
-    assert _run_extract("def foo():\n  pass") == "def foo(): ...\n"
-    assert _run_extract("def foo(x):\n  pass") == "def foo(x): ...\n"
-    assert _run_extract("def foo(x, y):\n  pass") == "def foo(x, y): ...\n"
+    assert _run_extract("def foo():\n  pass") == "def foo(): ..."
+    assert _run_extract("def foo(x):\n  pass") == "def foo(x): ..."
+    assert _run_extract("def foo(x, y):\n  pass") == "def foo(x, y): ..."
 
 
 def test_argument_annotations(_run_extract: Callable[[str], str]) -> None:
-    assert _run_extract("def foo(x: str):\n  pass") == "def foo(x: str): ...\n"
+    assert _run_extract("def foo(x: str):\n  pass") == "def foo(x: str): ..."
 
 
 def test_return_annotations(_run_extract: Callable[[str], str]) -> None:
-    assert _run_extract("def foo() -> str:\n  pass") == "def foo() -> str: ...\n"
+    assert _run_extract("def foo() -> str:\n  pass") == "def foo() -> str: ..."
+
+
+def test_class_statement(_run_extract: Callable[[str], str]) -> None:
+    assert _run_extract("class Foo: ...") == "class Foo: ..."
+
+
+def test_ignore_pass_ellipsis_in_classes(_run_extract: Callable[[str], str]) -> None:
+    assert _run_extract("class Foo: ...") == "class Foo: ..."
+    assert _run_extract("class Foo:\n  pass") == "class Foo: ..."
+    assert _run_extract("class Foo:\n  pass\n  ...\n  ...\n  pass") == "class Foo: ..."
+    assert (
+        _run_extract("class Foo:\n  pass\n  ...\n  def bar(self):\n    pass")
+        == "class Foo:\n    def bar(self): ..."
+    )
+
+
+def test_methods(_run_extract: Callable[[str], str]) -> None:
+    assert (
+        _run_extract(
+            """
+class Foo:
+    def bar(self) -> str:
+        pass
+"""
+        )
+        == "class Foo:\n    def bar(self) -> str: ..."
+    )
