@@ -41,8 +41,14 @@ class ExtractContext:
         self.write(s)
         self.finish_line()
 
-    def warn(self, msg: str) -> None:
-        print(f"WARNING:{self.filename}:{msg}", file=sys.stderr)
+    def unsupported(self, obj: ast.AST, what: str) -> None:
+        print(
+            f"WARNING:{self.filename}:{obj.lineno}:{what} are currently unsupported",
+            file=sys.stderr,
+        )
+
+    def warn(self, obj: ast.AST, msg: str) -> None:
+        print(f"WARNING:{self.filename}:{obj.lineno}:{msg}", file=sys.stderr)
 
 
 class _IndentationContext:
@@ -115,7 +121,7 @@ def _extract_function(func: ast.FunctionDef, context: ExtractContext) -> None:
         context.write(" -> ")
         context.write(ret_annotation)
     if func.type_comment:
-        context.warn(f"{func.lineno}:function type comments are currently unsupported")
+        context.unsupported(func, "function type comments")
     context.finish_line(": ...")
     # The body of functions is ignored.
 
@@ -126,30 +132,29 @@ def _extract_decorator(decorator: ast.expr, context: ExtractContext) -> None:
         context.finish_line(decorator.id)
     else:
         context.warn(
-            f"{decorator.lineno}:unsupported ast type '{type(decorator).__name__}' for"
+            decorator,
+            f"unsupported ast type '{type(decorator).__name__}' for decorators",
         )
 
 
 def _extract_argument_list(func: ast.FunctionDef, context: ExtractContext) -> None:
     args = func.args
     if args.posonlyargs:
-        context.warn(f"{func.lineno}:position-only arguments are currently unsupported")
+        context.unsupported(func, "position-only arguments")
     for i, arg in enumerate(args.args):
         if i > 0:
             context.write(", ")
         _extract_argument(arg, context)
     if args.vararg:
-        context.warn(f"{func.lineno}:variable arguments are currently unsupported")
+        context.unsupported(func, "variable arguments")
     if args.kwonlyargs:
-        context.warn(f"{func.lineno}:keyword-only arguments are currently unsupported")
+        context.unsupported(func, "keyword-only arguments")
     if args.kw_defaults:
-        context.warn(f"{func.lineno}:argument defaults are currently unsupported")
+        context.unsupported(func, ":argument defaults")
     if args.kw_defaults:
-        context.warn(
-            f"{func.lineno}:variable keyword arguments are currently unsupported"
-        )
+        context.unsupported(func, "variable keyword arguments")
     if args.defaults:
-        context.warn(f"{func.lineno}:argument defaults are currently unsupported")
+        context.unsupported(func, "argument defaults")
 
 
 def _extract_argument(arg: ast.arg, context: ExtractContext) -> None:
@@ -159,18 +164,18 @@ def _extract_argument(arg: ast.arg, context: ExtractContext) -> None:
         context.write(": ")
         context.write(annotation)
     if arg.type_comment:
-        context.warn(f"{arg.lineno}:argument type comments are currently unsupported")
+        context.unsupported(arg, "argument type comments")
 
 
 def _extract_class(klass: ast.ClassDef, context: ExtractContext) -> None:
     if klass.decorator_list:
-        context.warn(f"{klass.lineno}:class decorators are currently unsupported")
+        context.unsupported(klass, "class decorators")
     context.write("class ")
     context.write(klass.name)
     if klass.bases:
-        context.warn(f"{klass.lineno}:base classes are currently unsupported")
+        context.unsupported(klass, "base classes")
     if klass.keywords:
-        context.warn(f"{klass.lineno}:class keywords are currently unsupported")
+        context.unsupported(klass, "class keywords")
     context.write(":")
     if _is_class_body_empty(klass):
         context.finish_line(" ...")
@@ -191,7 +196,7 @@ def _extract_class_body(klass: ast.ClassDef, context: ExtractContext) -> None:
             _extract_function(stmt, context)
         else:
             context.warn(
-                f"{stmt.lineno}:unsupported ast type '{type(stmt).__name__}' in class body"
+                stmt, f"unsupported ast type '{type(stmt).__name__}' in class body"
             )
 
 
@@ -212,7 +217,8 @@ def _get_annotation(
         return annotation.id
     else:
         context.warn(
-            f"{annotation.lineno}:unsupported ast type '{type(annotation).__name__}' for annotations"
+            annotation,
+            f"unsupported ast type '{type(annotation).__name__}' for annotations",
         )
         return None
 
@@ -221,5 +227,6 @@ def _warn_unsupported_ast(
     parent: ast.AST, child: ast.AST, context: ExtractContext
 ) -> None:
     context.warn(
-        f"{child.lineno}:unsupported ast type '{type(child).__name__}' in '{type(parent).__name__}'"
+        child,
+        f"unsupported ast type '{type(child).__name__}' in '{type(parent).__name__}'",
     )
