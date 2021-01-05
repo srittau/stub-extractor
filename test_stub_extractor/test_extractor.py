@@ -34,6 +34,7 @@ def test_imports(_run_extract: Callable[[str], str]) -> None:
     assert _run_extract("""import os""") == "import os\n"
     assert _run_extract("""import os, sys""") == "import os, sys\n"
     assert _run_extract("""import os as so""") == "import os as so\n"
+    assert _run_extract("""import sys.path""") == "import sys.path\n"
 
 
 def test_unannotated_functions(_run_extract: Callable[[str], str]) -> None:
