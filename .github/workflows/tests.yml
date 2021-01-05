@@ -1,0 +1,31 @@
+name: Run tests
+on:
+  push:
+  pull_request:
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.8, 3.9]
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          python -m pip install -U pip
+          pip install -r requirements.txt
+      - name: Type check with mypy
+        run: mypy --no-incremental stub_extractor test_stub_extractor
+      - name: Lint with flake8
+        run: flake8 stub_extractor test_stub_extractor
+      - name: Check formatting with black and isort
+        run: |
+          black --check stub_extractor test_stub_extractor
+          isort --check-only stub_extractor test_stub_extractor
+      - name: Run unit tests with pytest
+        run: pytest
