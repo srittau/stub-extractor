@@ -76,3 +76,7 @@ class Foo:
         )
         == "class Foo:\n    def bar(self) -> str: ..."
     )
+
+
+def test_decorators(_run_extract: Callable[[str], str]) -> None:
+    assert _run_extract("@foo\ndef bar(): pass") == "@foo\ndef bar(): ..."

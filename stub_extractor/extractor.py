@@ -105,10 +105,10 @@ def _extract_import(import_: ast.Import, context: ExtractContext) -> None:
 
 
 def _extract_function(func: ast.FunctionDef, context: ExtractContext) -> None:
+    for decorator in func.decorator_list:
+        _extract_decorator(decorator, context)
     context.write(f"def {func.name}(")
     _extract_argument_list(func, context)
-    if func.decorator_list:
-        context.warn(f"{func.lineno}:decorators are currently unsupported")
     context.write(")")
     ret_annotation = _get_annotation(func.returns, context)
     if ret_annotation:
@@ -118,6 +118,16 @@ def _extract_function(func: ast.FunctionDef, context: ExtractContext) -> None:
         context.warn(f"{func.lineno}:function type comments are currently unsupported")
     context.finish_line(": ...")
     # The body of functions is ignored.
+
+
+def _extract_decorator(decorator: ast.expr, context: ExtractContext) -> None:
+    if isinstance(decorator, ast.Name):
+        context.write("@")
+        context.finish_line(decorator.id)
+    else:
+        context.warn(
+            f"{decorator.lineno}:unsupported ast type '{type(decorator).__name__}' for"
+        )
 
 
 def _extract_argument_list(func: ast.FunctionDef, context: ExtractContext) -> None:
