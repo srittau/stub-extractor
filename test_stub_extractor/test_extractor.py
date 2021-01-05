@@ -1,5 +1,5 @@
 from io import StringIO
-from typing import Callable
+from typing import Any, Callable
 
 import pytest
 
@@ -7,7 +7,7 @@ from stub_extractor.extractor import extract
 
 
 @pytest.fixture
-def _run_extract(capsys) -> Callable[[str], str]:
+def _run_extract(capsys: Any) -> Callable[[str], str]:
     def f(source: str) -> str:
         target = StringIO()
         extract(StringIO(source), target)

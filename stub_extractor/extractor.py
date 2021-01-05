@@ -50,7 +50,7 @@ def _extract_naked_expr(expr: ast.Expr, context: ExtractContext) -> None:
         _warn_unsupported_ast(expr, expr.value)
 
 
-def _extract_import(import_: ast.Import, context: ExtractContext):
+def _extract_import(import_: ast.Import, context: ExtractContext) -> None:
     # For now, we extract imports verbatim. In the future, imports need to
     # be pruned to imports actually used in the stubs.
     context.write("import ")
