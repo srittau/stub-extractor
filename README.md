@@ -25,3 +25,6 @@ There are two basic ways to run `stub_extractor`:
    `*.py` suffix will be replaced with `*.pyi`. If the target file already
    exists, `stub_extractor` will not overwrite it, unless the `-w` option
    is given.
+
+   If a directory is specified, stubs for all Python files in the directory
+   or its subdirectories are written.

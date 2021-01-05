@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import os
 import sys
 
 from .args import Args, parse_args
@@ -14,8 +15,22 @@ def main() -> None:
     if len(args.files) == 0:
         extract(sys.stdin, sys.stderr)
     else:
-        for filename in args.files:
+        _parse_files(args)
+
+
+def _parse_files(args: Args) -> None:
+    for filename in args.files:
+        if os.path.isdir(filename):
+            _parse_directory(args, filename)
+        else:
             _extract_file(args, filename)
+
+
+def _parse_directory(args: Args, filename: str) -> None:
+    for dir_path, __, files in os.walk(filename):
+        for fn in files:
+            if fn.endswith(".py"):
+                _extract_file(args, os.path.join(dir_path, fn))
 
 
 def _extract_file(args: Args, filename: str) -> None:

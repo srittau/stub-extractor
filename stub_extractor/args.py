@@ -12,7 +12,10 @@ class Args:
 def parse_args() -> Args:
     parser = ArgumentParser(description="Extract type stubs from Python source files.")
     parser.add_argument(
-        "files", metavar="FILE", nargs="*", help="Python source files to parse"
+        "files",
+        metavar="FILE",
+        nargs="*",
+        help="Python source files or directories",
     )
     parser.add_argument(
         "-w",
