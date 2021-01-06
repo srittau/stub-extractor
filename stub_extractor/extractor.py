@@ -256,17 +256,17 @@ def _get_annotation_subscript(
         slice_ = subscript.slice.value  # type: ignore
     else:  # Python 3.9+
         slice_ = subscript.slice
-    if isinstance(slice_, ast.Constant):
-        sub2 = _get_annotation(slice_, context)
-        if sub2 is None:
-            return None
-        sub = sub2
-        return f"{subscript.value.id}[{sub}]"
-    elif isinstance(slice_, ast.Tuple):
+    if isinstance(slice_, ast.Tuple):
         subs = [_get_annotation(el, context) for el in slice_.elts]
         if any(s is None for s in subs):
             return None
         sub = ", ".join(cast(List[str], subs))
+        return f"{subscript.value.id}[{sub}]"
+    elif isinstance(slice_, ast.expr):
+        sub2 = _get_annotation(slice_, context)
+        if sub2 is None:
+            return None
+        sub = sub2
         return f"{subscript.value.id}[{sub}]"
     else:
         _warn_unsupported_ast(subscript, slice_, context)

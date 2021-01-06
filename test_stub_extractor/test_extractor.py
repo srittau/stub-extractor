@@ -76,6 +76,10 @@ def test_annotation_subscripts(_run_extract: Callable[[str], str]) -> None:
         == "def foo() -> Optional[None]: ..."
     )
     assert (
+        _run_extract("def foo() -> Optional[Type[None]]: pass")
+        == "def foo() -> Optional[Type[None]]: ..."
+    )
+    assert (
         _run_extract("def foo() -> Tuple[None, str]: pass")
         == "def foo() -> Tuple[None, str]: ..."
     )
