@@ -43,6 +43,21 @@ def test_unannotated_functions(_run_extract: Callable[[str], str]) -> None:
     assert _run_extract("def foo(x, y):\n  pass") == "def foo(x, y): ..."
 
 
+def test_kw_only_arguments(_run_extract: Callable[[str], str]) -> None:
+    assert _run_extract("def foo(*, x, y): pass") == "def foo(*, x, y): ..."
+    assert _run_extract("def foo(x, *, y): pass") == "def foo(x, *, y): ..."
+
+
+def test_argument_defaults(_run_extract: Callable[[str], str]) -> None:
+    assert _run_extract("def foo(x=None): pass") == "def foo(x=...): ..."
+    assert _run_extract("def foo(x, y=None): pass") == "def foo(x, y=...): ..."
+    assert _run_extract("def foo(*, x, y=''): pass") == "def foo(*, x, y=...): ..."
+    assert (
+        _run_extract("def foo(x: int = 3, *, y: str = ''): pass")
+        == "def foo(x: int = ..., *, y: str = ...): ..."
+    )
+
+
 def test_argument_annotations(_run_extract: Callable[[str], str]) -> None:
     assert _run_extract("def foo(x: str):\n  pass") == "def foo(x: str): ..."
 

@@ -5,6 +5,8 @@ import sys
 import types
 from typing import TYPE_CHECKING, List, Optional, cast
 
+from .util import rzip_longest
+
 if TYPE_CHECKING:
     from _typeshed import SupportsRead, SupportsWrite
 
@@ -138,31 +140,40 @@ def _extract_decorator(decorator: ast.expr, context: ExtractContext) -> None:
 
 
 def _extract_argument_list(func: ast.FunctionDef, context: ExtractContext) -> None:
-    args = func.args
-    if args.posonlyargs:
+    first_arg = True
+    if func.args.posonlyargs:
         context.unsupported(func, "position-only arguments")
-    for i, arg in enumerate(args.args):
-        if i > 0:
+    assert len(func.args.defaults) <= len(func.args.args)
+    for arg, default in rzip_longest(func.args.args, func.args.defaults):
+        if not first_arg:
             context.write(", ")
-        _extract_argument(arg, context)
-    if args.vararg:
+        _extract_argument(arg, default, context)
+        first_arg = False
+    if func.args.vararg:
         context.unsupported(func, "variable arguments")
-    if args.kwonlyargs:
-        context.unsupported(func, "keyword-only arguments")
-    if args.kw_defaults:
-        context.unsupported(func, ":argument defaults")
-    if args.kw_defaults:
+    assert len(func.args.kw_defaults) == len(func.args.kwonlyargs)
+    if func.args.kwonlyargs:
+        if not first_arg:
+            context.write(", ")
+        context.write("*")
+        first_arg = False
+        for arg, default in zip(func.args.kwonlyargs, func.args.kw_defaults):
+            context.write(", ")
+            _extract_argument(arg, default, context)
+    if func.args.kwarg:
         context.unsupported(func, "variable keyword arguments")
-    if args.defaults:
-        context.unsupported(func, "argument defaults")
 
 
-def _extract_argument(arg: ast.arg, context: ExtractContext) -> None:
+def _extract_argument(
+    arg: ast.arg, default: Optional[ast.expr], context: ExtractContext
+) -> None:
     context.write(arg.arg)
     annotation = _get_annotation(arg.annotation, context)
     if annotation:
         context.write(": ")
         context.write(annotation)
+    if default is not None:
+        context.write(" = ..." if annotation else "=...")
     if arg.type_comment:
         context.unsupported(arg, "argument type comments")
 
