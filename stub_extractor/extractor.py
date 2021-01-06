@@ -183,16 +183,40 @@ def _extract_class(klass: ast.ClassDef, context: ExtractContext) -> None:
         context.unsupported(klass, "class decorators")
     context.write("class ")
     context.write(klass.name)
+    bases = []
     if klass.bases:
-        context.unsupported(klass, "base classes")
+        for base in klass.bases:
+            base_str = _get_base_class(base, context)
+            if base_str is not None:
+                bases.append(base_str)
     if klass.keywords:
         context.unsupported(klass, "class keywords")
+    if bases:
+        context.write("(")
+        context.write(", ".join(bases))
+        context.write(")")
     context.write(":")
     if _is_class_body_empty(klass):
         context.finish_line(" ...")
     else:
         with context.indent():
             _extract_class_body(klass, context)
+
+
+def _get_base_class(base: ast.expr, context: ExtractContext) -> Optional[str]:
+    if isinstance(base, ast.Name):
+        return base.id
+    elif isinstance(base, ast.Subscript):
+        if not isinstance(base.value, ast.Name):
+            _warn_unsupported_ast(base, base.value, context)
+            return None
+        sub = _get_base_class(base.slice, context)
+        if sub is None:
+            return None
+        return f"{base.value.id}[{sub}]"
+    else:
+        context.warn(base, f"unsupported base class type '{type(base).__name__}'")
+        return None
 
 
 def _is_class_body_empty(klass: ast.ClassDef) -> bool:

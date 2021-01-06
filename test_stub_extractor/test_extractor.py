@@ -96,6 +96,11 @@ def test_annotation_subscripts(_run_extract: Callable[[str], str]) -> None:
 
 def test_class_statement(_run_extract: Callable[[str], str]) -> None:
     assert _run_extract("class Foo: ...") == "class Foo: ..."
+    assert _run_extract("class Foo(Bar): pass") == "class Foo(Bar): ..."
+    assert _run_extract("class Foo(Bar, Baz): pass") == "class Foo(Bar, Baz): ..."
+    assert (
+        _run_extract("class Foo(Bar[Baz[_T]]): pass") == "class Foo(Bar[Baz[_T]]): ..."
+    )
 
 
 def test_ignore_pass_ellipsis_in_classes(_run_extract: Callable[[str], str]) -> None:
