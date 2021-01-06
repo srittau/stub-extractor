@@ -84,6 +84,8 @@ def _extract_module(module: ast.Module, context: ExtractContext) -> None:
             _extract_import(child, context)
         elif isinstance(child, ast.ImportFrom):
             _extract_import_from(child, context)
+        elif isinstance(child, ast.Assign):
+            _extract_type_alias(child, context)
         elif isinstance(child, ast.FunctionDef):
             _extract_function(child, context)
         elif isinstance(child, ast.ClassDef):
@@ -123,6 +125,23 @@ def _get_import_names(names: Iterable[ast.alias]) -> str:
     return ", ".join(
         f"{name.name} as {name.asname}" if name.asname else name.name for name in names
     )
+
+
+def _extract_type_alias(alias: ast.Assign, context: ExtractContext) -> None:
+    # TODO: recognize non-alias assignments
+
+    if alias.type_comment:
+        _warn_type_comments(alias, context)
+    value_str = _get_annotation(alias.value, context)
+    if value_str is None:
+        return
+    for target in alias.targets:
+        if not isinstance(target, ast.Name):
+            _warn_unsupported_ast(alias, target, context)
+            continue
+        context.write(target.id)
+        context.write(" = ")
+        context.finish_line(value_str)
 
 
 def _extract_function(func: ast.FunctionDef, context: ExtractContext) -> None:
@@ -298,6 +317,13 @@ def _get_annotation(
         return annotation.id
     elif isinstance(annotation, ast.Subscript):
         return _get_annotation_subscript(annotation, context)
+    elif isinstance(annotation, ast.List):
+        items = []
+        for el in annotation.elts:
+            s = _get_annotation(el, context)
+            if s:
+                items.append(s)
+        return f"[{', '.join(items)}]"
     else:
         context.warn(
             annotation,

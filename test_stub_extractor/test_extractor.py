@@ -49,6 +49,16 @@ def test_relative_imports(_run_extract: Callable[[str], str]) -> None:
     assert _run_extract("""from ...os import x""") == "from ...os import x"
 
 
+def test_type_aliases(_run_extract: Callable[[str], str]) -> None:
+    assert _run_extract("Alias = str") == "Alias = str"
+    assert _run_extract("Alias = 'str'") == "Alias = str"
+    assert _run_extract("Alias1 = Alias2 = str") == "Alias1 = str\nAlias2 = str"
+    assert (
+        _run_extract("from typing import Optional\nAlias = Optional[str]")
+        == "from typing import Optional\nAlias = Optional[str]"
+    )
+
+
 def test_unannotated_functions(_run_extract: Callable[[str], str]) -> None:
     assert _run_extract("def foo():\n  pass") == "def foo(): ..."
     assert _run_extract("def foo(x):\n  pass") == "def foo(x): ..."
@@ -103,6 +113,10 @@ def test_annotation_subscripts(_run_extract: Callable[[str], str]) -> None:
     assert (
         _run_extract("def foo() -> Tuple[None, str]: pass")
         == "def foo() -> Tuple[None, str]: ..."
+    )
+    assert (
+        _run_extract("def foo() -> Callable[[str, bool], None]: pass")
+        == "def foo() -> Callable[[str, bool], None]: ..."
     )
 
 
