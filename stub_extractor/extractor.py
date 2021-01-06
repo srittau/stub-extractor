@@ -227,13 +227,15 @@ def _get_annotation(
     if isinstance(annotation, ast.Constant):
         if annotation.value is None:
             return "None"
+        elif isinstance(annotation.value, str):
+            return annotation.value
         else:
             context.warn(
                 annotation,
                 f"unsupported constant {annotation.value} for annotations",
             )
             return None
-    if isinstance(annotation, ast.Name):
+    elif isinstance(annotation, ast.Name):
         return annotation.id
     elif isinstance(annotation, ast.Subscript):
         return _get_annotation_subscript(annotation, context)

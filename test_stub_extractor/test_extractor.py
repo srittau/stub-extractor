@@ -70,6 +70,15 @@ def test_annotation_constants(_run_extract: Callable[[str], str]) -> None:
     assert _run_extract("def foo() -> None: pass") == "def foo() -> None: ..."
 
 
+def test_string_annotations(_run_extract: Callable[[str], str]) -> None:
+    assert _run_extract("def foo(x: 'X[str]'): pass") == "def foo(x: X[str]): ..."
+    assert _run_extract("def foo() -> 'None': pass") == "def foo() -> None: ..."
+    assert (
+        _run_extract("def foo() -> Optional['None']: pass")
+        == "def foo() -> Optional[None]: ..."
+    )
+
+
 def test_annotation_subscripts(_run_extract: Callable[[str], str]) -> None:
     assert (
         _run_extract("def foo() -> Optional[None]: pass")
