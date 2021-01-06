@@ -161,9 +161,11 @@ def _extract_function(func: ast.FunctionDef, context: ExtractContext) -> None:
 
 
 def _extract_decorator(decorator: ast.expr, context: ExtractContext) -> None:
-    if isinstance(decorator, ast.Name):
-        context.write("@")
-        context.finish_line(decorator.id)
+    if isinstance(decorator, (ast.Name, ast.Attribute)):
+        name = _get_dotted_name(decorator, context)
+        if name is not None:
+            context.write("@")
+            context.finish_line(name)
     else:
         context.warn(
             decorator,
@@ -240,16 +242,17 @@ def _get_base_class(
 ) -> Optional[str]:
     if isinstance(base, ast.Index):  # Python 3.8
         base = base.value  # type: ignore
-    if isinstance(base, ast.Name):
-        return base.id
+    if isinstance(base, (ast.Name, ast.Attribute)):
+        return _get_dotted_name(base, context)
     elif isinstance(base, ast.Subscript):
-        if not isinstance(base.value, ast.Name):
+        if not isinstance(base.value, (ast.Name, ast.Attribute)):
             _warn_unsupported_ast(base, base.value, context)
             return None
+        base_s = _get_dotted_name(base.value, context)
         sub = _get_base_class(base.slice, context)
-        if sub is None:
+        if base_s is None or sub is None:
             return None
-        return f"{base.value.id}[{sub}]"
+        return f"{base_s}[{sub}]"
     else:
         context.warn(base, f"unsupported base class type '{type(base).__name__}'")
         return None
@@ -317,8 +320,8 @@ def _get_annotation(
                 f"unsupported constant {annotation.value} for annotations",
             )
             return None
-    elif isinstance(annotation, ast.Name):
-        return annotation.id
+    elif isinstance(annotation, (ast.Name, ast.Attribute)):
+        return _get_dotted_name(annotation, context)
     elif isinstance(annotation, ast.Subscript):
         return _get_annotation_subscript(annotation, context)
     elif isinstance(annotation, ast.List):
@@ -336,10 +339,26 @@ def _get_annotation(
         return None
 
 
+def _get_dotted_name(obj: ast.expr, context: ExtractContext) -> Optional[str]:
+    if isinstance(obj, ast.Name):
+        return obj.id
+    elif isinstance(obj, ast.Attribute):
+        part = _get_dotted_name(obj.value, context)
+        if part is None:
+            return None
+        return f"{part}.{obj.attr}"
+        print(obj.value, obj.attr)
+    else:
+        context.warn(
+            obj, f"unsupported ast type for quoted names '{type(obj).__name__}'"
+        )
+        return None
+
+
 def _get_annotation_subscript(
     subscript: ast.Subscript, context: ExtractContext
 ) -> Optional[str]:
-    if not isinstance(subscript.value, ast.Name):
+    if not isinstance(subscript.value, (ast.Name, ast.Attribute)):
         _warn_unsupported_ast(subscript, subscript.value, context)
         return None
     slice_: ast.AST
@@ -347,18 +366,21 @@ def _get_annotation_subscript(
         slice_ = subscript.slice.value  # type: ignore
     else:  # Python 3.9+
         slice_ = subscript.slice
+    value = _get_dotted_name(subscript.value, context)
+    if value is None:
+        return None
     if isinstance(slice_, ast.Tuple):
         subs = [_get_annotation(el, context) for el in slice_.elts]
         if any(s is None for s in subs):
             return None
         sub = ", ".join(cast(List[str], subs))
-        return f"{subscript.value.id}[{sub}]"
+        return f"{value}[{sub}]"
     elif isinstance(slice_, ast.expr):
         sub2 = _get_annotation(slice_, context)
         if sub2 is None:
             return None
         sub = sub2
-        return f"{subscript.value.id}[{sub}]"
+        return f"{value}[{sub}]"
     else:
         _warn_unsupported_ast(subscript, slice_, context)
         return None

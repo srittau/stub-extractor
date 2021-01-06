@@ -88,6 +88,14 @@ def test_return_annotations(_run_extract: Callable[[str], str]) -> None:
     assert _run_extract("def foo() -> str:\n  pass") == "def foo() -> str: ..."
 
 
+def test_annotations(_run_extract: Callable[[str], str]) -> None:
+    assert _run_extract("def func() -> foo.bar: pass") == "def func() -> foo.bar: ..."
+    assert (
+        _run_extract("def func() -> foo.Bar[str]: pass")
+        == "def func() -> foo.Bar[str]: ..."
+    )
+
+
 def test_annotation_constants(_run_extract: Callable[[str], str]) -> None:
     assert _run_extract("def foo() -> None: pass") == "def foo() -> None: ..."
 
@@ -127,6 +135,9 @@ def test_class_statement(_run_extract: Callable[[str], str]) -> None:
     assert (
         _run_extract("class Foo(Bar[Baz[_T]]): pass") == "class Foo(Bar[Baz[_T]]): ..."
     )
+    assert _run_extract("class Foo(bar.Bar): pass") == "class Foo(bar.Bar): ..."
+    assert _run_extract("class Foo(X.Bar[Y]): pass") == "class Foo(X.Bar[Y]): ..."
+    assert _run_extract("class Foo(Bar[X.Y]): pass") == "class Foo(Bar[X.Y]): ..."
 
 
 def test_ignore_pass_ellipsis_in_classes(_run_extract: Callable[[str], str]) -> None:
@@ -166,3 +177,4 @@ def test_class_fields(_run_extract: Callable[[str], str]) -> None:
 
 def test_decorators(_run_extract: Callable[[str], str]) -> None:
     assert _run_extract("@foo\ndef bar(): pass") == "@foo\ndef bar(): ..."
+    assert _run_extract("@foo.baz\ndef bar(): pass") == "@foo.baz\ndef bar(): ..."
