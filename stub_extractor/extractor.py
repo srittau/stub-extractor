@@ -3,7 +3,7 @@ from __future__ import annotations
 import ast
 import sys
 import types
-from typing import TYPE_CHECKING, Iterable, List, Optional, cast
+from typing import TYPE_CHECKING, Iterable, List, Optional, Union, cast
 
 from .util import rzip_longest
 
@@ -235,7 +235,11 @@ def _extract_class(klass: ast.ClassDef, context: ExtractContext) -> None:
             _extract_class_body(klass, context)
 
 
-def _get_base_class(base: ast.expr, context: ExtractContext) -> Optional[str]:
+def _get_base_class(
+    base: Union[ast.expr, ast.slice], context: ExtractContext
+) -> Optional[str]:
+    if isinstance(base, ast.Index):  # Python 3.8
+        base = base.value  # type: ignore
     if isinstance(base, ast.Name):
         return base.id
     elif isinstance(base, ast.Subscript):
