@@ -138,5 +138,17 @@ class Foo:
     )
 
 
+def test_class_fields(_run_extract: Callable[[str], str]) -> None:
+    assert _run_extract("class Foo:\n  x = True") == "class Foo:\n    x: ClassVar[Any]"
+    assert (
+        _run_extract("class Foo:\n  x = y = True")
+        == "class Foo:\n    x: ClassVar[Any]\n    y: ClassVar[Any]"
+    )
+    assert (
+        _run_extract("class Foo:\n  x, y = 1, 2")
+        == "class Foo:\n    x: ClassVar[Any]\n    y: ClassVar[Any]"
+    )
+
+
 def test_decorators(_run_extract: Callable[[str], str]) -> None:
     assert _run_extract("@foo\ndef bar(): pass") == "@foo\ndef bar(): ..."

@@ -40,8 +40,7 @@ class ExtractContext:
         self._new_line = True
 
     def write_line(self, s: str) -> None:
-        self.write(s)
-        self.finish_line()
+        self.finish_line(s)
 
     def unsupported(self, obj: ast.AST, what: str) -> None:
         print(
@@ -137,7 +136,7 @@ def _extract_function(func: ast.FunctionDef, context: ExtractContext) -> None:
         context.write(" -> ")
         context.write(ret_annotation)
     if func.type_comment:
-        context.unsupported(func, "function type comments")
+        _warn_type_comments(func, context)
     context.finish_line(": ...")
     # The body of functions is ignored.
 
@@ -189,7 +188,7 @@ def _extract_argument(
     if default is not None:
         context.write(" = ..." if annotation else "=...")
     if arg.type_comment:
-        context.unsupported(arg, "argument type comments")
+        _warn_type_comments(arg, context)
 
 
 def _extract_class(klass: ast.ClassDef, context: ExtractContext) -> None:
@@ -243,6 +242,8 @@ def _extract_class_body(klass: ast.ClassDef, context: ExtractContext) -> None:
             pass
         elif isinstance(stmt, ast.FunctionDef):
             _extract_function(stmt, context)
+        elif isinstance(stmt, ast.Assign):
+            _extract_class_assign(stmt, context)
         else:
             context.warn(
                 stmt, f"unsupported ast type '{type(stmt).__name__}' in class body"
@@ -255,6 +256,26 @@ def _is_pass_or_ellipsis(stmt: ast.stmt) -> bool:
         or isinstance(stmt, ast.Expr)
         and isinstance(stmt.value, ast.Constant)
     )
+
+
+def _extract_class_assign(assign: ast.Assign, context: ExtractContext) -> None:
+    # TODO: make sure that ClassVar and Any are imported
+    # TODO: recognize type aliases
+
+    def extract_target(expr: ast.AST) -> None:
+        if isinstance(expr, ast.Name):
+            context.write(expr.id)
+            context.finish_line(": ClassVar[Any]")
+        elif isinstance(expr, ast.Tuple):
+            for el in expr.elts:
+                extract_target(el)
+        else:
+            _warn_unsupported_ast(target, assign, context)
+
+    if assign.type_comment is not None:
+        _warn_type_comments(assign, context)
+    for target in assign.targets:
+        extract_target(target)
 
 
 def _get_annotation(
@@ -320,3 +341,7 @@ def _warn_unsupported_ast(
         child,
         f"unsupported ast type '{type(child).__name__}' in '{type(parent).__name__}'",
     )
+
+
+def _warn_type_comments(node: ast.AST, context: ExtractContext) -> None:
+    context.unsupported(node, "function type comments")
