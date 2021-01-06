@@ -73,11 +73,11 @@ def extract(
 ) -> None:
     context = ExtractContext(target, filename)
     tree = ast.parse(source.read(), filename=filename, type_comments=True)
-    _extract_module(tree, context)
+    _extract_top_level(tree.body, context)
 
 
-def _extract_module(module: ast.Module, context: ExtractContext) -> None:
-    for child in module.body:
+def _extract_top_level(body: Iterable[ast.stmt], context: ExtractContext) -> None:
+    for child in body:
         if isinstance(child, ast.Expr):
             _extract_naked_expr(child, context)
         elif isinstance(child, ast.Import):
@@ -90,8 +90,13 @@ def _extract_module(module: ast.Module, context: ExtractContext) -> None:
             _extract_function(child, context)
         elif isinstance(child, ast.ClassDef):
             _extract_class(child, context)
+        elif isinstance(child, ast.If):
+            _extract_conditional(child, context)
         else:
-            _warn_unsupported_ast(module, child, context)
+            context.warn(
+                child,
+                f"unsupported ast type '{type(child).__name__}' at top-level",
+            )
 
 
 def _extract_naked_expr(expr: ast.Expr, context: ExtractContext) -> None:
@@ -270,6 +275,8 @@ def _extract_class_body(klass: ast.ClassDef, context: ExtractContext) -> None:
             _extract_function(stmt, context)
         elif isinstance(stmt, ast.Assign):
             _extract_class_assign(stmt, context)
+        elif isinstance(stmt, ast.If):
+            _extract_conditional(stmt, context)
         else:
             context.warn(
                 stmt, f"unsupported ast type '{type(stmt).__name__}' in class body"
@@ -302,6 +309,37 @@ def _extract_class_assign(assign: ast.Assign, context: ExtractContext) -> None:
         _warn_type_comments(assign, context)
     for target in assign.targets:
         extract_target(target)
+
+
+def _extract_conditional(conditional: ast.If, context: ExtractContext) -> None:
+    if _is_type_checking(conditional.test, context):
+        _extract_top_level(conditional.body, context)
+    elif _is_inverted_type_checking(conditional.test, context):
+        _extract_top_level(conditional.orelse, context)
+    else:
+        _extract_top_level(conditional.body, context)
+        _extract_top_level(conditional.orelse, context)
+
+
+def _is_type_checking(test: ast.expr, context: ExtractContext) -> bool:
+    return _is_qualified_name(test, "typing.TYPE_CHECKING", context)
+
+
+def _is_inverted_type_checking(test: ast.expr, context: ExtractContext) -> bool:
+    if not isinstance(test, ast.UnaryOp) or not isinstance(test.op, ast.Not):
+        return False
+    return _is_qualified_name(test.operand, "typing.TYPE_CHECKING", context)
+
+
+def _is_qualified_name(test: ast.expr, name: str, context: ExtractContext) -> bool:
+    # TODO: Current this uses a heuristic of well-known names. To implement
+    # this properly, we should record known names with their "proper" name
+    # in ExtractContext and compare the local name to that.
+    if not name.startswith("typing."):
+        return False
+    if not isinstance(test, ast.Name):
+        return False
+    return name == f"typing.{test.id}"
 
 
 def _get_annotation(

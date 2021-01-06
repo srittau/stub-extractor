@@ -178,3 +178,42 @@ def test_class_fields(_run_extract: Callable[[str], str]) -> None:
 def test_decorators(_run_extract: Callable[[str], str]) -> None:
     assert _run_extract("@foo\ndef bar(): pass") == "@foo\ndef bar(): ..."
     assert _run_extract("@foo.baz\ndef bar(): pass") == "@foo.baz\ndef bar(): ..."
+
+
+def test_conditionals(_run_extract: Callable[[str], str]) -> None:
+    assert _run_extract("if True:\n  def foo(): pass\n") == "def foo(): ..."
+    assert (
+        _run_extract("if True:\n  def foo(): pass\nelse:\n  def bar(): pass")
+        == "def foo(): ...\ndef bar(): ..."
+    )
+    assert (
+        _run_extract("if True:\n  def foo(): pass\nelif False:\n  def bar(): pass")
+        == "def foo(): ...\ndef bar(): ..."
+    )
+    assert (
+        _run_extract(
+            "class Foo:\n  if True:\n    def foo(): pass\n  elif False:\n    def bar(): pass"
+        )
+        == "class Foo:\n    def foo(): ...\n    def bar(): ..."
+    )
+
+
+def test_conditionals_type_checking(_run_extract: Callable[[str], str]) -> None:
+    assert (
+        _run_extract(
+            "from typing import TYPE_CHECKING\nif TYPE_CHECKING:\n  def foo(): pass\nelse:\n  def bar(): pass"
+        )
+        == "from typing import TYPE_CHECKING\ndef foo(): ..."
+    )
+    assert (
+        _run_extract(
+            "from typing import TYPE_CHECKING\nif not TYPE_CHECKING:\n  def foo(): pass\nelse:\n  def bar(): pass"
+        )
+        == "from typing import TYPE_CHECKING\ndef bar(): ..."
+    )
+    assert (
+        _run_extract(
+            "from typing import TYPE_CHECKING\nclass Foo:\n  if TYPE_CHECKING:\n    def foo(): pass\n  else:\n    def bar(): pass"
+        )
+        == "from typing import TYPE_CHECKING\nclass Foo:\n    def foo(): ..."
+    )
