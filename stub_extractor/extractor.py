@@ -3,7 +3,7 @@ from __future__ import annotations
 import ast
 import sys
 import types
-from typing import TYPE_CHECKING, List, Optional, cast
+from typing import TYPE_CHECKING, Iterable, List, Optional, cast
 
 from .util import rzip_longest
 
@@ -83,6 +83,8 @@ def _extract_module(module: ast.Module, context: ExtractContext) -> None:
             _extract_naked_expr(child, context)
         elif isinstance(child, ast.Import):
             _extract_import(child, context)
+        elif isinstance(child, ast.ImportFrom):
+            _extract_import_from(child, context)
         elif isinstance(child, ast.FunctionDef):
             _extract_function(child, context)
         elif isinstance(child, ast.ClassDef):
@@ -102,14 +104,26 @@ def _extract_import(import_: ast.Import, context: ExtractContext) -> None:
     # For now, we extract imports verbatim. In the future, imports need to
     # be pruned to imports actually used in the stubs.
     context.write("import ")
-    imports = []
-    for name in import_.names:
-        if name.asname:
-            imports.append(f"{name.name} as {name.asname}")
-        else:
-            imports.append(name.name)
-    context.write(", ".join(imports))
+    context.write(_get_import_names(import_.names))
     context.finish_line()
+
+
+def _extract_import_from(import_: ast.ImportFrom, context: ExtractContext) -> None:
+    # For now, we extract imports verbatim. In the future, imports need to
+    # be pruned to imports actually used in the stubs.
+    context.write("from ")
+    context.write("." * import_.level)
+    if import_.module is not None:
+        context.write(import_.module)
+    context.write(" import ")
+    context.write(_get_import_names(import_.names))
+    context.finish_line()
+
+
+def _get_import_names(names: Iterable[ast.alias]) -> str:
+    return ", ".join(
+        f"{name.name} as {name.asname}" if name.asname else name.name for name in names
+    )
 
 
 def _extract_function(func: ast.FunctionDef, context: ExtractContext) -> None:

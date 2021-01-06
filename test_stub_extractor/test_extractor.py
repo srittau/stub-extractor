@@ -37,6 +37,18 @@ def test_imports(_run_extract: Callable[[str], str]) -> None:
     assert _run_extract("""import sys.path""") == "import sys.path"
 
 
+def test_import_froms(_run_extract: Callable[[str], str]) -> None:
+    assert _run_extract("""from os import x""") == "from os import x"
+    assert _run_extract("""from os import x, y""") == "from os import x, y"
+    assert _run_extract("""from os import x as y""") == "from os import x as y"
+
+
+def test_relative_imports(_run_extract: Callable[[str], str]) -> None:
+    assert _run_extract("""from . import x""") == "from . import x"
+    assert _run_extract("""from .os import x""") == "from .os import x"
+    assert _run_extract("""from ...os import x""") == "from ...os import x"
+
+
 def test_unannotated_functions(_run_extract: Callable[[str], str]) -> None:
     assert _run_extract("def foo():\n  pass") == "def foo(): ..."
     assert _run_extract("def foo(x):\n  pass") == "def foo(x): ..."
