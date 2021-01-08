@@ -62,12 +62,21 @@ def test_relative_imports(_run_extract: Callable[[str], str]) -> None:
 
 def test_type_aliases(_run_extract: Callable[[str], str]) -> None:
     assert _run_extract("Alias = str") == "Alias = str"
-    assert _run_extract("Alias = 'str'") == "Alias = str"
     assert _run_extract("Alias1 = Alias2 = str") == "Alias1 = str\nAlias2 = str"
     assert (
         _run_extract("from typing import Optional\nAlias = Optional[str]")
         == "from typing import Optional\nAlias = Optional[str]"
     )
+
+
+def test_top_level_constants(_run_extract: Callable[[str], str]) -> None:
+    assert _run_extract("x = None") == "x: Optional[Any]"
+    assert _run_extract("x = 'foo'") == "x: str"
+    assert _run_extract("x = 'int'") == "x: str"
+    assert _run_extract("x = b'foo'") == "x: bytes"
+    assert _run_extract("x = 3") == "x: int"
+    assert _run_extract("x = 3.3") == "x: float"
+    assert _run_extract("x = y = ''") == "x: str\ny: str"
 
 
 def test_unannotated_functions(_run_extract: Callable[[str], str]) -> None:

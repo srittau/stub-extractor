@@ -8,8 +8,10 @@ import sys
 from typing import TYPE_CHECKING, Iterable, List, Optional, Tuple, Union
 
 from .ts_ast import (
+    Alias,
     Annotation,
     Argument,
+    Attribute,
     Class,
     ClassAssign,
     ClassContent,
@@ -19,7 +21,6 @@ from .ts_ast import (
     Import,
     ImportFrom,
     Module,
-    ModuleAssign,
     ModuleContent,
     Type,
 )
@@ -64,7 +65,7 @@ def _extract_top_level(
         elif isinstance(child, ast.ImportFrom):
             import_froms.append(_extract_import_from(child, context))
         elif isinstance(child, ast.Assign):
-            assigns = _extract_type_alias(child, context)
+            assigns = _extract_top_level_assign(child, context)
             ast_body.extend(assigns)
         elif isinstance(child, ast.FunctionDef):
             function = _extract_function(child, context)
@@ -148,22 +149,53 @@ def _get_import_names(aliases: Iterable[ast.alias]) -> List[Tuple[str, Optional[
     return [(name.name, name.asname) for name in aliases]
 
 
-def _extract_type_alias(
-    alias: ast.Assign, context: ExtractContext
-) -> List[ModuleAssign]:
-    # TODO: recognize non-alias assignments
+def _extract_top_level_assign(
+    assign: ast.Assign, context: ExtractContext
+) -> Union[List[Alias], List[Attribute]]:
+    if isinstance(assign.value, ast.Constant) or assign.type_comment:
+        return _extract_top_level_attribute(assign, context)
+    else:
+        return _extract_top_level_alias(assign, context)
 
-    if alias.type_comment:
-        _warn_type_comments(alias, context)
-    annotation = _extract_annotation(alias.value, context)
+
+def _extract_top_level_attribute(
+    assign: ast.Assign, context: ExtractContext
+) -> List[Attribute]:
+    if assign.type_comment:
+        _warn_type_comments(assign, context)
+    if not isinstance(assign.value, ast.Constant):
+        _warn_unsupported_ast(assign, assign.value, context)
+        return []
+    const = assign.value.value
+    if const is None:
+        # TODO: make sure Optional is imported
+        annotation = "Optional[Any]"
+    elif isinstance(const, (str, bytes, int, float)):
+        annotation = str(type(const).__name__)
+    else:
+        context.warn(assign, f"{type(const)} constants are unsupported")
+        return []
+    targets = []
+    for target in assign.targets:
+        if isinstance(target, ast.Name):
+            targets.append(target.id)
+        else:
+            _warn_unsupported_ast(assign, target, context)
+    return [Attribute(t, Annotation(annotation)) for t in targets]
+
+
+def _extract_top_level_alias(
+    assign: ast.Assign, context: ExtractContext
+) -> List[Alias]:
+    annotation = _extract_annotation(assign.value, context)
     if annotation is None:
         return []
     assigns = []
-    for target in alias.targets:
+    for target in assign.targets:
         if not isinstance(target, ast.Name):
-            _warn_unsupported_ast(alias, target, context)
+            _warn_unsupported_ast(assign, target, context)
             continue
-        assigns.append(ModuleAssign(target.id, annotation))
+        assigns.append(Alias(target.id, annotation))
     return assigns
 
 

@@ -6,8 +6,10 @@ import types
 from typing import TYPE_CHECKING, Optional
 
 from .ts_ast import (
+    Alias,
     Annotation,
     Argument,
+    Attribute,
     Class,
     ClassAssign,
     Decorator,
@@ -15,7 +17,6 @@ from .ts_ast import (
     Import,
     ImportFrom,
     Module,
-    ModuleAssign,
 )
 
 if TYPE_CHECKING:
@@ -84,12 +85,16 @@ def generate_module(module: Module, context: GeneratorContext) -> None:
     for imp_f in module.import_froms:
         generate_import_from(imp_f, context)
     for item in module.content:
-        if isinstance(item, ModuleAssign):
-            generate_module_assign(item, context)
+        if isinstance(item, Attribute):
+            generate_attribute(item, context)
+        elif isinstance(item, Alias):
+            generate_alias(item, context)
         elif isinstance(item, Function):
             generate_function(item, context)
         elif isinstance(item, Class):
             generate_class(item, context)
+        else:
+            raise RuntimeError(f"unhandled {type(body_el)} in module")
 
 
 def generate_import(imp: Import, context: GeneratorContext) -> None:
@@ -111,10 +116,17 @@ def generate_import_from(imp: ImportFrom, context: GeneratorContext) -> None:
     context.finish_line()
 
 
-def generate_module_assign(assign: ModuleAssign, context: GeneratorContext) -> None:
-    context.write(assign.name)
+def generate_attribute(attribute: Attribute, context: GeneratorContext) -> None:
+    context.write(attribute.name)
+    context.write(": ")
+    generate_annotation(attribute.annotation, context)
+    context.finish_line()
+
+
+def generate_alias(alias: Alias, context: GeneratorContext) -> None:
+    context.write(alias.name)
     context.write(" = ")
-    generate_annotation(assign.annotation, context)
+    generate_annotation(alias.alias, context)
     context.finish_line()
 
 
@@ -174,9 +186,7 @@ def generate_class(ast_class: Class, context: GeneratorContext) -> None:
                 elif isinstance(body_el, ClassAssign):
                     generate_class_assignment(body_el, context)
                 else:
-                    raise RuntimeError(
-                        f"missing handler for {type(body_el)} in class body"
-                    )
+                    raise RuntimeError(f"unhandled {type(body_el)} in class body")
 
 
 def generate_class_assignment(assign: ClassAssign, context: GeneratorContext) -> None:

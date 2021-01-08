@@ -67,10 +67,16 @@ class ImportFrom:
         self.level = level
 
 
-class ModuleAssign:
+class Attribute:
     def __init__(self, name: str, annotation: Annotation) -> None:
         self.name = name
         self.annotation = annotation
+
+
+class Alias:
+    def __init__(self, name: str, alias: Annotation) -> None:
+        self.name = name
+        self.alias = alias
 
 
 class Function:
@@ -130,5 +136,5 @@ class Decorator:
         self.name = name
 
 
-ModuleContent = Union[ModuleAssign, Function, Class]
+ModuleContent = Union[Attribute, Alias, Function, Class]
 ClassContent = Union[ClassAssign, Function]
