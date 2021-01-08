@@ -90,6 +90,13 @@ def test_kw_only_arguments(_run_extract: Callable[[str], str]) -> None:
     assert _run_extract("def foo(x, *, y): pass") == "def foo(x, *, y): ..."
 
 
+def test_variable_arguments(_run_extract: Callable[[str], str]) -> None:
+    assert _run_extract("def foo(*bar): pass") == "def foo(*bar): ..."
+    assert _run_extract("def foo(*bar: str): pass") == "def foo(*bar: str): ..."
+    assert _run_extract("def foo(abc, *bar): pass") == "def foo(abc, *bar): ..."
+    assert _run_extract("def foo(*bar, abc): pass") == "def foo(*bar, abc): ..."
+
+
 def test_argument_defaults(_run_extract: Callable[[str], str]) -> None:
     assert _run_extract("def foo(x=None): pass") == "def foo(x=...): ..."
     assert _run_extract("def foo(x, y=None): pass") == "def foo(x, y=...): ..."

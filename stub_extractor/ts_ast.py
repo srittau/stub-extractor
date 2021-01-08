@@ -86,12 +86,14 @@ class Function:
         self,
         name: str,
         args: Iterable[Argument] = [],
+        var_arg: Optional[Argument] = None,
         kw_args: Iterable[Argument] = [],
         return_annotation: Optional[Annotation] = None,
         decorators: Iterable[Decorator] = [],
     ) -> None:
         self.name = name
         self.args = list(args)
+        self.var_arg = var_arg
         self.kw_args = list(kw_args)
         self.return_annotation = return_annotation
         self.decorators = list(decorators)

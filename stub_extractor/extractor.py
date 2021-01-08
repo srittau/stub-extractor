@@ -202,13 +202,13 @@ def _extract_top_level_alias(
 def _extract_function(func: ast.FunctionDef, context: ExtractContext) -> Function:
     decorators = [_extract_decorator(d, context) for d in func.decorator_list]
     filtered_decorators: List[Decorator] = [d for d in decorators if d]
-    ast_args, ast_kwargs = _extract_argument_list(func, context)
+    ast_args, var_arg, ast_kwargs = _extract_argument_list(func, context)
     ret_annotation = _extract_annotation(func.returns, context)
     if func.type_comment:
         _warn_type_comments(func, context)
     # The body of functions is ignored.
     return Function(
-        func.name, ast_args, ast_kwargs, ret_annotation, filtered_decorators
+        func.name, ast_args, var_arg, ast_kwargs, ret_annotation, filtered_decorators
     )
 
 
@@ -229,7 +229,7 @@ def _extract_decorator(
 # Returns (args, kwonly).
 def _extract_argument_list(
     func: ast.FunctionDef, context: ExtractContext
-) -> Tuple[List[Argument], List[Argument]]:
+) -> Tuple[List[Argument], Optional[Argument], List[Argument]]:
     if func.args.posonlyargs:
         context.unsupported(func, "position-only arguments")
     assert len(func.args.defaults) <= len(func.args.args)
@@ -237,8 +237,9 @@ def _extract_argument_list(
     for arg, default in rzip_longest(func.args.args, func.args.defaults):
         ast_arg = _extract_argument(arg, default, context)
         ast_args.append(ast_arg)
+    var_arg: Optional[Argument] = None
     if func.args.vararg:
-        context.unsupported(func, "variable arguments")
+        var_arg = _extract_argument(func.args.vararg, None, context)
     assert len(func.args.kw_defaults) == len(func.args.kwonlyargs)
     ast_kwargs = []
     if func.args.kwonlyargs:
@@ -247,7 +248,7 @@ def _extract_argument_list(
             ast_kwargs.append(ast_arg)
     if func.args.kwarg:
         context.unsupported(func, "variable keyword arguments")
-    return ast_args, ast_kwargs
+    return ast_args, var_arg, ast_kwargs
 
 
 def _extract_argument(

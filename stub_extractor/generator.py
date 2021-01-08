@@ -143,11 +143,16 @@ def generate_function(function: Function, context: GeneratorContext) -> None:
         generate_argument(ast_arg, context)
         first_arg = False
 
-    if function.kw_args:
+    if function.var_arg or function.kw_args:
         if not first_arg:
             context.write(", ")
         context.write("*")
         first_arg = False
+
+    if function.var_arg:
+        generate_argument(function.var_arg, context)
+
+    if function.kw_args:
         for ast_arg in function.kw_args:
             context.write(", ")
             generate_argument(ast_arg, context)
