@@ -4,13 +4,15 @@ from typing import Any, Callable
 import pytest
 
 from stub_extractor.extractor import extract
+from stub_extractor.generator import generate
 
 
 @pytest.fixture
 def _run_extract(capsys: Any) -> Callable[[str], str]:
     def f(source: str) -> str:
+        module = extract(StringIO(source))
         target = StringIO()
-        extract(StringIO(source), target)
+        generate(module, target)
         assert capsys.readouterr().err == ""
         return target.getvalue().strip()
 

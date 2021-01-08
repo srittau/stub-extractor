@@ -5,6 +5,7 @@ import sys
 
 from .args import Args, parse_args
 from .extractor import extract
+from .generator import generate
 
 
 def main() -> None:
@@ -13,7 +14,8 @@ def main() -> None:
         sys.exit(1)
     args = parse_args()
     if len(args.files) == 0:
-        extract(sys.stdin, sys.stderr)
+        module = extract(sys.stdin)
+        generate(module, sys.stdout)
     else:
         _parse_files(args)
 
@@ -38,14 +40,16 @@ def _extract_file(args: Args, filename: str) -> None:
     try:
         with open(filename) as source:
             try:
-                mode = "w" if args.overwrite else "x"
-                with open(target_name, mode) as target:
-                    try:
-                        extract(source, target, filename)
-                    except SyntaxError as exc:
-                        print(f"WARNING:{filename}:invalid Python file : {exc}")
-            except FileExistsError:
-                print(f"WARNING:{target_name}:file already exists")
+                module = extract(source, filename)
+            except SyntaxError as exc:
+                print(f"WARNING:{filename}:invalid Python file : {exc}")
+                return
+        try:
+            mode = "w" if args.overwrite else "x"
+            with open(target_name, mode) as target:
+                generate(module, target)
+        except FileExistsError:
+            print(f"WARNING:{target_name}:file already exists")
     except OSError as exc:
         print(f"WARNING: {exc}")
 
