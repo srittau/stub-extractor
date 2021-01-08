@@ -94,7 +94,7 @@ def generate_module(module: Module, context: GeneratorContext) -> None:
         elif isinstance(item, Class):
             generate_class(item, context)
         else:
-            raise RuntimeError(f"unhandled {type(body_el)} in module")
+            raise RuntimeError(f"unhandled {type(item).__name__} in module")
 
 
 def generate_import(imp: Import, context: GeneratorContext) -> None:
