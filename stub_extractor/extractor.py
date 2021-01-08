@@ -59,7 +59,7 @@ def _extract_top_level(
             _extract_naked_expr(child, context)
         elif isinstance(child, ast.Import):
             imp = _extract_import(child, context)
-            ast_body.append(imp)
+            ast_body.extend(imp)
         elif isinstance(child, ast.ImportFrom):
             imp_f = _extract_import_from(child, context)
             ast_body.append(imp_f)
@@ -102,12 +102,11 @@ def _extract_naked_expr(expr: ast.Expr, context: ExtractContext) -> None:
         _warn_unsupported_ast(expr, expr.value, context)
 
 
-def _extract_import(import_: ast.Import, context: ExtractContext) -> Import:
+def _extract_import(import_: ast.Import, context: ExtractContext) -> List[Import]:
     # For now, we extract imports verbatim. In the future, imports need to
     # be pruned to imports actually used in the stubs.
-    # TODO: one Import per name
     names = _get_import_names(import_.names)
-    return Import(names)
+    return [Import(name, asname) for name, asname in names]
 
 
 def _extract_import_from(

@@ -34,7 +34,7 @@ def test_ignore_docstrings(_run_extract: Callable[[str], str]) -> None:
 
 def test_imports(_run_extract: Callable[[str], str]) -> None:
     assert _run_extract("""import os""") == "import os"
-    assert _run_extract("""import os, sys""") == "import os, sys"
+    assert _run_extract("""import os, sys""") == "import os\nimport sys"
     assert _run_extract("""import os as so""") == "import os as so"
     assert _run_extract("""import sys.path""") == "import sys.path"
 

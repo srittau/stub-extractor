@@ -46,10 +46,9 @@ class Module:
 
 
 class Import:
-    # TODO: allow only one name per Import
-
-    def __init__(self, names: Iterable[Tuple[str, Optional[str]]]) -> None:
-        self.names = list(names)
+    def __init__(self, name: str, asname: Optional[str]) -> None:
+        self.name = name
+        self.asname = asname
 
 
 class ImportFrom:

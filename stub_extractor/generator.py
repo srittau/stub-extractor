@@ -94,8 +94,10 @@ def generate_module(module: Module, context: GeneratorContext) -> None:
 
 def generate_import(imp: Import, context: GeneratorContext) -> None:
     context.write("import ")
-    names = [f"{name} as {asname}" if asname else name for name, asname in imp.names]
-    context.write(", ".join(names))
+    context.write(imp.name)
+    if imp.asname:
+        context.write(" as ")
+        context.write(imp.asname)
     context.finish_line()
 
 
