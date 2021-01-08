@@ -228,3 +228,22 @@ def test_conditionals_type_checking(_run_extract: Callable[[str], str]) -> None:
         )
         == "from typing import TYPE_CHECKING\nclass Foo:\n    def foo(): ..."
     )
+
+
+def test_try_blocks(_run_extract: Callable[[str], str]) -> None:
+    assert (
+        _run_extract(
+            "try:\n  from sys import platform\nexcept ImportError:\n  platform: int"
+        )
+        == "from sys import platform"
+    )
+    assert (
+        _run_extract(
+            "try:\n  from sys import platform\nexcept ImportError:\n  pass\nelse:\n  def foo(): pass"
+        )
+        == "from sys import platform\ndef foo(): ..."
+    )
+    assert (
+        _run_extract("try:\n  from sys import platform\nfinally:\n  def foo(): pass")
+        == "from sys import platform\ndef foo(): ..."
+    )

@@ -77,6 +77,11 @@ def _extract_top_level(
             imports.extend(ims)
             import_froms.extend(ifs)
             ast_body.extend(con)
+        elif isinstance(child, ast.Try):
+            ims, ifs, con = _extract_top_level_try(child, context)
+            imports.extend(ims)
+            import_froms.extend(ifs)
+            ast_body.extend(con)
         else:
             context.warn(
                 child,
@@ -100,6 +105,20 @@ def _extract_top_level_conditional(
             conditional.orelse, context
         )
         return imports1 + imports2, import_froms1 + import_froms2, content1 + content2
+
+
+def _extract_top_level_try(
+    try_block: ast.Try, context: ExtractContext
+) -> Tuple[List[Import], List[ImportFrom], List[ModuleContent]]:
+    # We ignore the except handlers.
+    body1, imports1, import_froms1 = _extract_top_level(try_block.body, context)
+    body2, imports2, import_froms2 = _extract_top_level(try_block.orelse, context)
+    body3, imports3, import_froms3 = _extract_top_level(try_block.finalbody, context)
+    return (
+        body1 + body2 + body3,
+        imports1 + imports2 + imports3,
+        import_froms1 + import_froms2 + import_froms3,
+    )
 
 
 def _extract_naked_expr(expr: ast.Expr, context: ExtractContext) -> None:
