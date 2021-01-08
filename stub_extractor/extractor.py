@@ -46,23 +46,23 @@ class ExtractContext:
 def extract(source: SupportsRead[str], filename: str = "<unknown>") -> Module:
     context = ExtractContext(filename)
     tree = ast.parse(source.read(), filename=filename, type_comments=True)
-    content = _extract_top_level(tree.body, context)
-    return Module(content)
+    imports, import_froms, content = _extract_top_level(tree.body, context)
+    return Module(imports, import_froms, content)
 
 
 def _extract_top_level(
     body: Iterable[ast.stmt], context: ExtractContext
-) -> List[ModuleContent]:
+) -> Tuple[List[Import], List[ImportFrom], List[ModuleContent]]:
+    imports: List[Import] = []
+    import_froms: List[ImportFrom] = []
     ast_body: List[ModuleContent] = []
     for child in body:
         if isinstance(child, ast.Expr):
             _extract_naked_expr(child, context)
         elif isinstance(child, ast.Import):
-            imp = _extract_import(child, context)
-            ast_body.extend(imp)
+            imports.extend(_extract_import(child, context))
         elif isinstance(child, ast.ImportFrom):
-            imp_f = _extract_import_from(child, context)
-            ast_body.append(imp_f)
+            import_froms.append(_extract_import_from(child, context))
         elif isinstance(child, ast.Assign):
             assigns = _extract_type_alias(child, context)
             ast_body.extend(assigns)
@@ -73,26 +73,33 @@ def _extract_top_level(
             klass = _extract_class(child, context)
             ast_body.append(klass)
         elif isinstance(child, ast.If):
-            ast_body.extend(_extract_top_level_conditional(child, context))
+            ims, ifs, con = _extract_top_level_conditional(child, context)
+            imports.extend(ims)
+            import_froms.extend(ifs)
+            ast_body.extend(con)
         else:
             context.warn(
                 child,
                 f"unsupported ast type '{type(child).__name__}' at top-level",
             )
-    return ast_body
+    return imports, import_froms, ast_body
 
 
 def _extract_top_level_conditional(
     conditional: ast.If, context: ExtractContext
-) -> List[ModuleContent]:
+) -> Tuple[List[Import], List[ImportFrom], List[ModuleContent]]:
     if _is_type_checking(conditional.test, context):
         return _extract_top_level(conditional.body, context)
     elif _is_inverted_type_checking(conditional.test, context):
         return _extract_top_level(conditional.orelse, context)
     else:
-        content1 = _extract_top_level(conditional.body, context)
-        content2 = _extract_top_level(conditional.orelse, context)
-        return content1 + content2
+        imports1, import_froms1, content1 = _extract_top_level(
+            conditional.body, context
+        )
+        imports2, import_froms2, content2 = _extract_top_level(
+            conditional.orelse, context
+        )
+        return imports1 + imports2, import_froms1 + import_froms2, content1 + content2
 
 
 def _extract_naked_expr(expr: ast.Expr, context: ExtractContext) -> None:

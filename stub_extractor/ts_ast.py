@@ -41,7 +41,14 @@ class Annotation:
 
 
 class Module:
-    def __init__(self, content: Iterable[ModuleContent]) -> None:
+    def __init__(
+        self,
+        imports: Iterable[Import] = [],
+        import_froms: Iterable[ImportFrom] = [],
+        content: Iterable[ModuleContent] = [],
+    ) -> None:
+        self.imports = list(imports)
+        self.import_froms = list(import_froms)
         self.content = list(content)
 
 
@@ -123,5 +130,5 @@ class Decorator:
         self.name = name
 
 
-ModuleContent = Union[Import, ImportFrom, ModuleAssign, Function, Class]
+ModuleContent = Union[ModuleAssign, Function, Class]
 ClassContent = Union[ClassAssign, Function]

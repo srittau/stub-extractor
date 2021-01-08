@@ -79,12 +79,12 @@ def generate_annotation(annotation: Annotation, context: GeneratorContext) -> No
 
 
 def generate_module(module: Module, context: GeneratorContext) -> None:
+    for imp in module.imports:
+        generate_import(imp, context)
+    for imp_f in module.import_froms:
+        generate_import_from(imp_f, context)
     for item in module.content:
-        if isinstance(item, Import):
-            generate_import(item, context)
-        elif isinstance(item, ImportFrom):
-            generate_import_from(item, context)
-        elif isinstance(item, ModuleAssign):
+        if isinstance(item, ModuleAssign):
             generate_module_assign(item, context)
         elif isinstance(item, Function):
             generate_function(item, context)

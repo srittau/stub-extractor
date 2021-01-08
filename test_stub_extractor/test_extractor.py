@@ -45,6 +45,15 @@ def test_import_froms(_run_extract: Callable[[str], str]) -> None:
     assert _run_extract("""from os import x as y""") == "from os import x as y"
 
 
+def test_group_imports(_run_extract: Callable[[str], str]) -> None:
+    assert (
+        _run_extract(
+            """from os import x\ndef foo(): ...\nimport sys\nfrom itertools import chain"""
+        )
+        == "import sys\nfrom os import x\nfrom itertools import chain\ndef foo(): ..."
+    )
+
+
 def test_relative_imports(_run_extract: Callable[[str], str]) -> None:
     assert _run_extract("""from . import x""") == "from . import x"
     assert _run_extract("""from .os import x""") == "from .os import x"
