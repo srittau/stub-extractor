@@ -131,8 +131,12 @@ class Class:
 class ClassAssign:
     """An assignment inside a class body."""
 
-    def __init__(self, name: str) -> None:
+    def __init__(
+        self, name: str, annotation: Annotation, *, class_var: bool = False
+    ) -> None:
         self.name = name
+        self.annotation = annotation
+        self.class_var = class_var
 
 
 class Decorator:

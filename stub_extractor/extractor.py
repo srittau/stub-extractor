@@ -368,6 +368,10 @@ def _extract_class_body(
         elif isinstance(stmt, ast.Assign):
             assigns = _extract_class_assign(stmt, context)
             body.extend(assigns)
+        elif isinstance(stmt, ast.AnnAssign):
+            assign = _extract_class_ann_assign(stmt, context)
+            if assign:
+                body.append(assign)
         elif isinstance(stmt, ast.If):
             body.extend(_extract_class_conditional(stmt, context))
         else:
@@ -408,7 +412,7 @@ def _extract_class_assign(
 
     def extract_target(expr: ast.AST) -> List[ClassAssign]:
         if isinstance(expr, ast.Name):
-            return [ClassAssign(expr.id)]
+            return [ClassAssign(expr.id, Annotation("Any"), class_var=True)]
         elif isinstance(expr, ast.Tuple):
             return list(
                 itertools.chain.from_iterable(extract_target(el) for el in expr.elts)
@@ -422,6 +426,18 @@ def _extract_class_assign(
     return list(
         itertools.chain.from_iterable(extract_target(t) for t in assign.targets)
     )
+
+
+def _extract_class_ann_assign(
+    assign: ast.AnnAssign, context: ExtractContext
+) -> Optional[ClassAssign]:
+    if not isinstance(assign.target, ast.Name):
+        _warn_unsupported_ast(assign, assign.target, context)
+        return None
+    annotation = _extract_annotation(assign.annotation, context)
+    if annotation is None:
+        return None
+    return ClassAssign(assign.target.id, annotation, class_var=False)
 
 
 def _is_type_checking(test: ast.expr, context: ExtractContext) -> bool:

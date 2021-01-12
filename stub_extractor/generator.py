@@ -203,7 +203,14 @@ def generate_class(ast_class: Class, context: GeneratorContext) -> None:
 
 def generate_class_assignment(assign: ClassAssign, context: GeneratorContext) -> None:
     context.write(assign.name)
-    context.finish_line(": ClassVar[Any]")
+    context.write(": ")
+    if assign.class_var:
+        context.write("ClassVar[")
+        generate_annotation(assign.annotation, context)
+        context.finish_line("]")
+    else:
+        generate_annotation(assign.annotation, context)
+        context.finish_line()
 
 
 def generate_decorator(decorator: Decorator, context: GeneratorContext) -> None:
