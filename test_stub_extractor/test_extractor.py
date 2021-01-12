@@ -80,7 +80,16 @@ def test_top_level_constants(_run_extract: Callable[[str], str]) -> None:
 
 
 def test_top_level_assignments(_run_extract: Callable[[str], str]) -> None:
+    assert _run_extract("x = []") == "x: List[Any]"
+    assert _run_extract("x = {}") == "x: Dict[Any, Any]"
+    assert _run_extract("x = {1, 2}") == "x: Set[Any]"
+    assert _run_extract("x = (1,)") == "x: Tuple[Any, ...]"
     assert _run_extract("x = foo()") == "x: Any"
+
+
+def test_top_level_ann_assignments(_run_extract: Callable[[str], str]) -> None:
+    assert _run_extract("x: int = 123") == "x: int"
+    assert _run_extract("x: str") == "x: str"
 
 
 def test_unannotated_functions(_run_extract: Callable[[str], str]) -> None:

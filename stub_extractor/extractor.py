@@ -76,6 +76,10 @@ def _extract_top_level(
         elif isinstance(child, ast.Assign):
             assigns = _extract_top_level_assign(child, context)
             ast_body.extend(assigns)
+        elif isinstance(child, ast.AnnAssign):
+            assign = _extract_top_level_ann_assign(child, context)
+            if assign:
+                ast_body.append(assign)
         elif isinstance(child, ast.FunctionDef):
             function = _extract_function(child, context)
             ast_body.append(function)
@@ -161,10 +165,24 @@ def _get_import_names(aliases: Iterable[ast.alias]) -> List[Tuple[str, Optional[
 def _extract_top_level_assign(
     assign: ast.Assign, context: ExtractContext
 ) -> Union[List[Alias], List[Attribute]]:
-    if isinstance(assign.value, (ast.Constant, ast.Call)) or assign.type_comment:
+    if (
+        isinstance(
+            assign.value,
+            (ast.Constant, ast.List, ast.Dict, ast.Set, ast.Tuple, ast.Call),
+        )
+        or assign.type_comment
+    ):
         return _extract_top_level_attribute(assign, context)
     else:
         return _extract_top_level_alias(assign, context)
+
+
+_AST_ASSIGN_TYPES = {
+    ast.List: ("typing.List", "List[Any]"),
+    ast.Dict: ("typing.Dict", "Dict[Any, Any]"),
+    ast.Set: ("typing.Set", "Set[Any]"),
+    ast.Tuple: ("typing.Tuple", "Tuple[Any, ...]"),
+}
 
 
 def _extract_top_level_attribute(
@@ -183,6 +201,10 @@ def _extract_top_level_attribute(
         else:
             context.warn(assign, f"{type(const)} constants are unsupported")
             return []
+    elif isinstance(assign.value, tuple(_AST_ASSIGN_TYPES.keys())):
+        require, annotation = _AST_ASSIGN_TYPES[type(assign.value)]
+        context.require("typing.Any")
+        context.require(require)
     elif isinstance(assign.value, ast.Call):
         context.require("typing.Any")
         annotation = "Any"
@@ -211,6 +233,19 @@ def _extract_top_level_alias(
             continue
         assigns.append(Alias(target.id, annotation))
     return assigns
+
+
+def _extract_top_level_ann_assign(
+    assign: ast.AnnAssign, context: ExtractContext
+) -> Optional[Attribute]:
+    if not isinstance(assign.target, ast.Name):
+        _warn_unsupported_ast(assign, assign.target, context)
+        return None
+    annotation = _extract_annotation(assign.annotation, context)
+    if annotation is None:
+        return None
+    # value is ignored
+    return Attribute(assign.target.id, Annotation(annotation.content))
 
 
 def _extract_function(func: ast.FunctionDef, context: ExtractContext) -> Function:
