@@ -92,6 +92,10 @@ def test_top_level_ann_assignments(_run_extract: Callable[[str], str]) -> None:
     assert _run_extract("x: str") == "x: str"
 
 
+def test_ignored_top_level(_run_extract: Callable[[str], str]) -> None:
+    assert _run_extract("x += 3") == ""
+
+
 def test_unannotated_functions(_run_extract: Callable[[str], str]) -> None:
     assert _run_extract("def foo():\n  pass") == "def foo(): ..."
     assert _run_extract("def foo(x):\n  pass") == "def foo(x): ..."
@@ -230,6 +234,10 @@ def test_class_fields(_run_extract: Callable[[str], str]) -> None:
 def test_class_ann_assignments(_run_extract: Callable[[str], str]) -> None:
     assert _run_extract("class Foo:\n  x: int = 123") == "class Foo:\n    x: int"
     assert _run_extract("class Foo:\n  x: str") == "class Foo:\n    x: str"
+
+
+def test_ignored_class_statements(_run_extract: Callable[[str], str]) -> None:
+    assert _run_extract("class Foo:\n  x += 3") == "class Foo: ..."
 
 
 def test_decorators(_run_extract: Callable[[str], str]) -> None:

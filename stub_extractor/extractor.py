@@ -96,6 +96,8 @@ def _extract_top_level(
             imports.extend(ims)
             import_froms.extend(ifs)
             ast_body.extend(con)
+        elif isinstance(child, ast.AugAssign):
+            pass  # ignore
         else:
             context.warn(
                 child,
@@ -374,6 +376,8 @@ def _extract_class_body(
                 body.append(assign)
         elif isinstance(stmt, ast.If):
             body.extend(_extract_class_conditional(stmt, context))
+        elif isinstance(stmt, ast.AugAssign):
+            pass  # ignore
         else:
             context.warn(
                 stmt, f"unsupported ast type '{type(stmt).__name__}' in class body"
