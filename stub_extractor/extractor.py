@@ -417,11 +417,11 @@ def _extract_annotation(
         return None
     if isinstance(annotation, ast.Constant):
         if annotation.value is None:
-            ast_ann = Annotation("None")
-            return ast_ann
+            return Annotation("None")
         elif isinstance(annotation.value, str):
-            ast_ann = Annotation(annotation.value)
-            return ast_ann
+            return Annotation(annotation.value)
+        elif annotation.value is Ellipsis:
+            return Annotation("...")
         else:
             context.warn(
                 annotation,

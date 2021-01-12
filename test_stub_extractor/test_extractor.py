@@ -137,6 +137,10 @@ def test_annotations(_run_extract: Callable[[str], str]) -> None:
 
 def test_annotation_constants(_run_extract: Callable[[str], str]) -> None:
     assert _run_extract("def foo() -> None: pass") == "def foo() -> None: ..."
+    assert (
+        _run_extract("def foo() -> Tuple[int, ...]: pass")
+        == "def foo() -> Tuple[int, ...]: ..."
+    )
 
 
 def test_string_annotations(_run_extract: Callable[[str], str]) -> None:
