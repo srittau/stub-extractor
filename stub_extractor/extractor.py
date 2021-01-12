@@ -5,7 +5,7 @@ from __future__ import annotations
 import ast
 import itertools
 import sys
-from typing import TYPE_CHECKING, Iterable, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Iterable, List, Optional, Set, Tuple, Union
 
 from .ts_ast import (
     Alias,
@@ -33,6 +33,15 @@ if TYPE_CHECKING:
 class ExtractContext:
     def __init__(self, filename: str) -> None:
         self.filename = filename
+        # TODO: actually support this
+        self.required_imports: Set[str] = set()
+
+    def require(self, required: str) -> None:
+        """Require an import to be present.
+
+        :param required: The required import in dotted syntax, e.g. ``typing.Any``
+        """
+        self.required_imports.add(required)
 
     def unsupported(self, obj: ast.AST, what: str) -> None:
         print(
@@ -166,7 +175,8 @@ def _extract_top_level_attribute(
     if isinstance(assign.value, ast.Constant):
         const = assign.value.value
         if const is None:
-            # TODO: make sure Optional and Any are imported
+            context.require("typing.Optional")
+            context.require("typing.Any")
             annotation = "Optional[Any]"
         elif isinstance(const, (str, bytes, int, float)):
             annotation = str(type(const).__name__)
@@ -174,7 +184,7 @@ def _extract_top_level_attribute(
             context.warn(assign, f"{type(const)} constants are unsupported")
             return []
     elif isinstance(assign.value, ast.Call):
-        # TODO: make sure Any is imported
+        context.require("typing.Any")
         annotation = "Any"
     else:
         _warn_unsupported_ast(assign, assign.value, context)
@@ -349,8 +359,10 @@ def _is_pass_or_ellipsis(stmt: ast.stmt) -> bool:
 def _extract_class_assign(
     assign: ast.Assign, context: ExtractContext
 ) -> List[ClassAssign]:
-    # TODO: make sure that ClassVar and Any are imported
     # TODO: recognize type aliases
+
+    context.require("typing.Any")
+    context.require("typing.ClassVar")
 
     def extract_target(expr: ast.AST) -> List[ClassAssign]:
         if isinstance(expr, ast.Name):
@@ -371,16 +383,16 @@ def _extract_class_assign(
 
 
 def _is_type_checking(test: ast.expr, context: ExtractContext) -> bool:
-    return _is_qualified_name(test, "typing.TYPE_CHECKING", context)
+    return _is_normalized_name(test, "typing.TYPE_CHECKING", context)
 
 
 def _is_inverted_type_checking(test: ast.expr, context: ExtractContext) -> bool:
     if not isinstance(test, ast.UnaryOp) or not isinstance(test.op, ast.Not):
         return False
-    return _is_qualified_name(test.operand, "typing.TYPE_CHECKING", context)
+    return _is_normalized_name(test.operand, "typing.TYPE_CHECKING", context)
 
 
-def _is_qualified_name(test: ast.expr, name: str, context: ExtractContext) -> bool:
+def _is_normalized_name(test: ast.expr, name: str, context: ExtractContext) -> bool:
     # TODO: Current this uses a heuristic of well-known names. To implement
     # this properly, we should record known names with their "proper" name
     # in ExtractContext and compare the local name to that.
