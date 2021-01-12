@@ -152,7 +152,7 @@ def _get_import_names(aliases: Iterable[ast.alias]) -> List[Tuple[str, Optional[
 def _extract_top_level_assign(
     assign: ast.Assign, context: ExtractContext
 ) -> Union[List[Alias], List[Attribute]]:
-    if isinstance(assign.value, ast.Constant) or assign.type_comment:
+    if isinstance(assign.value, (ast.Constant, ast.Call)) or assign.type_comment:
         return _extract_top_level_attribute(assign, context)
     else:
         return _extract_top_level_alias(assign, context)
@@ -163,17 +163,21 @@ def _extract_top_level_attribute(
 ) -> List[Attribute]:
     if assign.type_comment:
         _warn_type_comments(assign, context)
-    if not isinstance(assign.value, ast.Constant):
-        _warn_unsupported_ast(assign, assign.value, context)
-        return []
-    const = assign.value.value
-    if const is None:
-        # TODO: make sure Optional is imported
-        annotation = "Optional[Any]"
-    elif isinstance(const, (str, bytes, int, float)):
-        annotation = str(type(const).__name__)
+    if isinstance(assign.value, ast.Constant):
+        const = assign.value.value
+        if const is None:
+            # TODO: make sure Optional and Any are imported
+            annotation = "Optional[Any]"
+        elif isinstance(const, (str, bytes, int, float)):
+            annotation = str(type(const).__name__)
+        else:
+            context.warn(assign, f"{type(const)} constants are unsupported")
+            return []
+    elif isinstance(assign.value, ast.Call):
+        # TODO: make sure Any is imported
+        annotation = "Any"
     else:
-        context.warn(assign, f"{type(const)} constants are unsupported")
+        _warn_unsupported_ast(assign, assign.value, context)
         return []
     targets = []
     for target in assign.targets:

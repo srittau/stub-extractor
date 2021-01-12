@@ -79,6 +79,10 @@ def test_top_level_constants(_run_extract: Callable[[str], str]) -> None:
     assert _run_extract("x = y = ''") == "x: str\ny: str"
 
 
+def test_top_level_assignments(_run_extract: Callable[[str], str]) -> None:
+    assert _run_extract("x = foo()") == "x: Any"
+
+
 def test_unannotated_functions(_run_extract: Callable[[str], str]) -> None:
     assert _run_extract("def foo():\n  pass") == "def foo(): ..."
     assert _run_extract("def foo(x):\n  pass") == "def foo(x): ..."
