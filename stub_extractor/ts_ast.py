@@ -88,6 +88,7 @@ class Function:
         args: Iterable[Argument] = [],
         var_arg: Optional[Argument] = None,
         kw_args: Iterable[Argument] = [],
+        kw_arg: Optional[Argument] = None,
         return_annotation: Optional[Annotation] = None,
         decorators: Iterable[Decorator] = [],
     ) -> None:
@@ -95,6 +96,7 @@ class Function:
         self.args = list(args)
         self.var_arg = var_arg
         self.kw_args = list(kw_args)
+        self.kw_arg = kw_arg
         self.return_annotation = return_annotation
         self.decorators = list(decorators)
 

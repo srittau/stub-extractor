@@ -157,6 +157,13 @@ def generate_function(function: Function, context: GeneratorContext) -> None:
             context.write(", ")
             generate_argument(ast_arg, context)
 
+    if function.kw_arg:
+        if not first_arg:
+            context.write(", ")
+        context.write("**")
+        generate_argument(function.kw_arg, context)
+        first_arg = False
+
     context.write(")")
     if function.return_annotation:
         context.write(" -> ")
