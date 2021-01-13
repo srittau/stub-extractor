@@ -363,11 +363,13 @@ def _extract_type(
             return None
         base_s = _extract_dotted_name(base.value, context)
         sub_name: Optional[str]
-        if isinstance(base.slice, ast.Tuple):
-            subs = [_extract_type(el, context) for el in base.slice.elts]
+        # Python 3.8 compatibility
+        slice_ = base.slice.value if isinstance(base.slice, ast.Index) else base.slice  # type: ignore
+        if isinstance(slice_, ast.Tuple):
+            subs = [_extract_type(el, context) for el in slice_.elts]
             sub_name = ", ".join(s.name for s in subs if s)
         else:
-            sub = _extract_type(base.slice, context)
+            sub = _extract_type(slice_, context)  # type: ignore
             sub_name = sub.name if sub else None
         if base_s is None or sub_name is None:
             return None
