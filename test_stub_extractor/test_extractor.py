@@ -50,7 +50,17 @@ def test_group_imports(_run_extract: Callable[[str], str]) -> None:
         _run_extract(
             """from os import x\ndef foo(): ...\nimport sys\nfrom itertools import chain"""
         )
-        == "import sys\nfrom os import x\nfrom itertools import chain\ndef foo(): ..."
+        == "import sys\nfrom os import x\nfrom itertools import chain\n\ndef foo(): ..."
+    )
+
+
+def test_import_spacing(_run_extract: Callable[[str], str]) -> None:
+    assert _run_extract("x = 3") == "x: int"
+    assert _run_extract("import os\nx = 3") == "import os\n\nx: int"
+    assert _run_extract("from foo import bar\nx = 3") == "from foo import bar\n\nx: int"
+    assert (
+        _run_extract("import os\nimport sys\nfrom foo import bar\nx = 3")
+        == "import os\nimport sys\nfrom foo import bar\n\nx: int"
     )
 
 
@@ -65,7 +75,7 @@ def test_type_aliases(_run_extract: Callable[[str], str]) -> None:
     assert _run_extract("Alias1 = Alias2 = str") == "Alias1 = str\nAlias2 = str"
     assert (
         _run_extract("from typing import Optional\nAlias = Optional[str]")
-        == "from typing import Optional\nAlias = Optional[str]"
+        == "from typing import Optional\n\nAlias = Optional[str]"
     )
 
 
@@ -286,19 +296,19 @@ def test_conditionals_type_checking(_run_extract: Callable[[str], str]) -> None:
         _run_extract(
             "from typing import TYPE_CHECKING\nif TYPE_CHECKING:\n  def foo(): pass\nelse:\n  def bar(): pass"
         )
-        == "from typing import TYPE_CHECKING\ndef foo(): ..."
+        == "from typing import TYPE_CHECKING\n\ndef foo(): ..."
     )
     assert (
         _run_extract(
             "from typing import TYPE_CHECKING\nif not TYPE_CHECKING:\n  def foo(): pass\nelse:\n  def bar(): pass"
         )
-        == "from typing import TYPE_CHECKING\ndef bar(): ..."
+        == "from typing import TYPE_CHECKING\n\ndef bar(): ..."
     )
     assert (
         _run_extract(
             "from typing import TYPE_CHECKING\nclass Foo:\n  if TYPE_CHECKING:\n    def foo(): pass\n  else:\n    def bar(): pass"
         )
-        == "from typing import TYPE_CHECKING\nclass Foo:\n    def foo(): ..."
+        == "from typing import TYPE_CHECKING\n\nclass Foo:\n    def foo(): ..."
     )
 
 
@@ -313,9 +323,9 @@ def test_try_blocks(_run_extract: Callable[[str], str]) -> None:
         _run_extract(
             "try:\n  from sys import platform\nexcept ImportError:\n  pass\nelse:\n  def foo(): pass"
         )
-        == "from sys import platform\ndef foo(): ..."
+        == "from sys import platform\n\ndef foo(): ..."
     )
     assert (
         _run_extract("try:\n  from sys import platform\nfinally:\n  def foo(): pass")
-        == "from sys import platform\ndef foo(): ..."
+        == "from sys import platform\n\ndef foo(): ..."
     )

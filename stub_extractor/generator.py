@@ -84,6 +84,8 @@ def generate_module(module: Module, context: GeneratorContext) -> None:
         generate_import(imp, context)
     for imp_f in module.import_froms:
         generate_import_from(imp_f, context)
+    if (module.imports or module.import_froms) and module.content:
+        context.finish_line()
     for item in module.content:
         if isinstance(item, Attribute):
             generate_attribute(item, context)
