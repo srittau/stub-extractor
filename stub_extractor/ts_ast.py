@@ -122,10 +122,12 @@ class Class:
         name: str,
         bases: Iterable[Type] = [],
         body: Iterable[ClassContent] = [],
+        keywords: Iterable[Tuple[str, str]] = [],
     ) -> None:
         self.name = name
         self.bases = list(bases)
         self.body = list(body)
+        self.keywords = list(keywords)
 
 
 class ClassAssign:

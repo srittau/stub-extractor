@@ -327,10 +327,24 @@ def _extract_class(klass: ast.ClassDef, context: ExtractContext) -> Class:
             base_type = _extract_type(base, context)
             if base_type is not None:
                 base_types.append(base_type)
-    if klass.keywords:
-        context.unsupported(klass, "class keywords")
+    keywords = []
+    for kw in klass.keywords:
+        e_kw = _extract_class_keyword(kw, context)
+        if e_kw is not None:
+            keywords.append(e_kw)
     body = _extract_class_body(klass.body, context)
-    return Class(klass.name, base_types, body)
+    return Class(klass.name, base_types, body, keywords)
+
+
+def _extract_class_keyword(
+    keyword: ast.keyword, context: ExtractContext
+) -> Optional[Tuple[str, str]]:
+    assert keyword.arg is not None
+    if isinstance(keyword.value, ast.Name):
+        return keyword.arg, keyword.value.id
+    else:
+        _warn_unsupported_ast(keyword, keyword.value, context)
+        return None
 
 
 def _extract_type(

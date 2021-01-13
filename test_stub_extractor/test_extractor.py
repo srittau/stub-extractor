@@ -196,6 +196,17 @@ def test_class_statement(_run_extract: Callable[[str], str]) -> None:
     assert _run_extract("class Foo(Bar[X.Y]): pass") == "class Foo(Bar[X.Y]): ..."
 
 
+def test_class_keyword(_run_extract: Callable[[str], str]) -> None:
+    assert (
+        _run_extract("class Foo(metaclass=Bar): pass")
+        == "class Foo(metaclass=Bar): ..."
+    )
+    assert (
+        _run_extract("class Foo(Super, metaclass=Bar): pass")
+        == "class Foo(Super, metaclass=Bar): ..."
+    )
+
+
 def test_ignore_pass_ellipsis_in_classes(_run_extract: Callable[[str], str]) -> None:
     assert _run_extract("class Foo: ...") == "class Foo: ..."
     assert _run_extract("class Foo:\n  pass") == "class Foo: ..."

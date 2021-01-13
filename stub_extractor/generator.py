@@ -183,9 +183,12 @@ def generate_argument(argument: Argument, context: GeneratorContext) -> None:
 def generate_class(ast_class: Class, context: GeneratorContext) -> None:
     context.write("class ")
     context.write(ast_class.name)
-    if ast_class.bases:
+    bases = [b.name for b in ast_class.bases] + [
+        f"{kw[0]}={kw[1]}" for kw in ast_class.keywords
+    ]
+    if bases:
         context.write("(")
-        context.write(", ".join(b.name for b in ast_class.bases))
+        context.write(", ".join(bases))
         context.write(")")
     context.write(":")
     if len(ast_class.body) == 0:
