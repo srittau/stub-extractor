@@ -170,7 +170,7 @@ def _extract_top_level_assign(
     if (
         isinstance(
             assign.value,
-            (ast.Constant, ast.List, ast.Dict, ast.Set, ast.Tuple, ast.Call),
+            (ast.Constant, ast.Call, tuple(_AST_ASSIGN_TYPES.keys())),
         )
         or assign.type_comment
     ):
@@ -184,6 +184,7 @@ _AST_ASSIGN_TYPES = {
     ast.Dict: ("typing.Dict", "Dict[Any, Any]"),
     ast.Set: ("typing.Set", "Set[Any]"),
     ast.Tuple: ("typing.Tuple", "Tuple[Any, ...]"),
+    ast.BinOp: ("typing.Any", "Any"),
 }
 
 

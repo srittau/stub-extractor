@@ -76,6 +76,7 @@ def test_top_level_constants(_run_extract: Callable[[str], str]) -> None:
     assert _run_extract("x = b'foo'") == "x: bytes"
     assert _run_extract("x = 3") == "x: int"
     assert _run_extract("x = 3.3") == "x: float"
+    assert _run_extract("x = 2 * 6") == "x: Any"
     assert _run_extract("x = y = ''") == "x: str\ny: str"
 
 
