@@ -208,6 +208,11 @@ def test_class_keyword(_run_extract: Callable[[str], str]) -> None:
     )
 
 
+def test_class_decorators(_run_extract: Callable[[str], str]) -> None:
+    assert _run_extract("@foo\nclass Foo: ...") == "class Foo: ..."
+    assert _run_extract("@foo\n@bar\nclass Foo: ...") == "class Foo: ..."
+
+
 def test_ignore_pass_ellipsis_in_classes(_run_extract: Callable[[str], str]) -> None:
     assert _run_extract("class Foo: ...") == "class Foo: ..."
     assert _run_extract("class Foo:\n  pass") == "class Foo: ..."

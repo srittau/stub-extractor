@@ -181,6 +181,8 @@ def generate_argument(argument: Argument, context: GeneratorContext) -> None:
 
 
 def generate_class(ast_class: Class, context: GeneratorContext) -> None:
+    for dec in ast_class.decorators:
+        generate_decorator(dec, context)
     context.write("class ")
     context.write(ast_class.name)
     bases = [b.name for b in ast_class.bases] + [

@@ -319,8 +319,7 @@ def _extract_argument(
 
 
 def _extract_class(klass: ast.ClassDef, context: ExtractContext) -> Class:
-    if klass.decorator_list:
-        context.unsupported(klass, "class decorators")
+    # ignore decorators
     base_types = []
     if klass.bases:
         for base in klass.bases:
