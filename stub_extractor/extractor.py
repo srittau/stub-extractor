@@ -362,10 +362,16 @@ def _extract_type(
             _warn_unsupported_ast(base, base.value, context)
             return None
         base_s = _extract_dotted_name(base.value, context)
-        sub = _extract_type(base.slice, context)
-        if base_s is None or sub is None:
+        sub_name: Optional[str]
+        if isinstance(base.slice, ast.Tuple):
+            subs = [_extract_type(el, context) for el in base.slice.elts]
+            sub_name = ", ".join(s.name for s in subs if s)
+        else:
+            sub = _extract_type(base.slice, context)
+            sub_name = sub.name if sub else None
+        if base_s is None or sub_name is None:
             return None
-        return Type(f"{base_s.name}[{sub.name}]")
+        return Type(f"{base_s.name}[{sub_name}]")
     else:
         context.warn(base, f"unsupported base class type '{type(base).__name__}'")
         return None

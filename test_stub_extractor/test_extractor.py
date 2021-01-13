@@ -194,6 +194,7 @@ def test_class_statement(_run_extract: Callable[[str], str]) -> None:
     assert _run_extract("class Foo(bar.Bar): pass") == "class Foo(bar.Bar): ..."
     assert _run_extract("class Foo(X.Bar[Y]): pass") == "class Foo(X.Bar[Y]): ..."
     assert _run_extract("class Foo(Bar[X.Y]): pass") == "class Foo(Bar[X.Y]): ..."
+    assert _run_extract("class Foo(Bar[X, Y]): pass") == "class Foo(Bar[X, Y]): ..."
 
 
 def test_class_keyword(_run_extract: Callable[[str], str]) -> None:
